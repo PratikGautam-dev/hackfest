@@ -85,6 +85,7 @@ def test_detect_anomalies_flags_outlier():
     
     # Find matching amounts explicitly validating parsing bounds isolation accuracy
     assert any(a["transaction"]["amount"] == 5000.0 for a in anomalies)
+    assert any("median_amount" in a for a in anomalies)
 
 
 def test_detect_anomalies_requires_three_samples():

@@ -80,20 +80,23 @@ def detect_anomalies(transactions: list[Transaction]) -> list[dict]:
             
         classification = classify_transaction(txn)
         cat = classification["category"]
+        party = txn.party.lower() if txn.party else ""
+        group_key = f"{cat}|{party}"
         
-        if cat not in by_category:
-            by_category[cat] = []
-        by_category[cat].append(txn)
+        if group_key not in by_category:
+            by_category[group_key] = []
+        by_category[group_key].append(txn)
         
     anomalies = []
     
-    for cat, txns in by_category.items():
+    for group_key, txns in by_category.items():
+        cat = group_key.split("|")[0]
         # Mathematical standards require at least 3 chronological samples resolving reliable variation natively 
         if len(txns) < 3:
             continue
             
         amounts = [t.amount for t in txns]
-        mean_amount = statistics.mean(amounts)
+        median_amount = statistics.median(amounts)
         std_dev = statistics.stdev(amounts)
         
         # Prevent zero-variance constant crashing multiplier mappings structurally
@@ -101,19 +104,19 @@ def detect_anomalies(transactions: list[Transaction]) -> list[dict]:
             continue
             
         # Deviation threshold bounds implicitly requiring limits passing 2 standard deviations continuously
-        threshold = mean_amount + (2 * std_dev)
+        threshold = median_amount + (2 * std_dev)
         
         for txn in txns:
             if txn.amount > threshold:
-                multiplier = round(txn.amount / mean_amount, 1)
+                multiplier = round(txn.amount / median_amount, 1)
                 
                 # Format a plain English logical string structurally isolating outliers implicitly
-                reason = f"{txn.party} payment of ₹{txn.amount:,.2f} is unusually high — {multiplier}x above your typical ₹{mean_amount:,.2f}."
+                reason = f"{txn.party} payment of ₹{txn.amount:,.2f} is unusually high — {multiplier}x above your typical ₹{median_amount:,.2f}."
                 
                 anomalies.append({
                     "transaction": txn.to_dict(),
                     "category": cat,
-                    "mean_amount": round(mean_amount, 2),
+                    "median_amount": round(median_amount, 2),
                     "std_dev": round(std_dev, 2),
                     "anomaly_reason": reason
                 })
