@@ -8,7 +8,7 @@ import os
 import json
 import logging
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 from pocket_cfo_parser.models.transaction import Transaction
 
 # Initialize env variables globally
@@ -139,10 +139,8 @@ def _classify_with_gemini(party: str, amount: float) -> dict:
     if not api_key or not party or party.lower() == "unknown":
         return fallback_payload
 
-    genai.configure(api_key=api_key)
-    
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        client = genai.Client(api_key=api_key)
         
         prompt = f"""
         Classify the merchant "{party}" (Transaction amount: {amount}) into one of these categories:
@@ -158,7 +156,7 @@ def _classify_with_gemini(party: str, amount: float) -> dict:
         Output only the pure JSON text without any markdown wrapper blocks.
         """
         
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
         text = response.text.strip()
         
         # Strip potential markdown formatting if model didn't implicitly obey

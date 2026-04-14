@@ -4,4 +4,4 @@ pytest
 reportlab
 pymongo
 python-dotenv
-google-generativeai
+google-genai
