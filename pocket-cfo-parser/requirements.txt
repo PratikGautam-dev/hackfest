@@ -2,3 +2,5 @@ pdfplumber
 python-dateutil
 pytest
 reportlab
+pymongo
+python-dotenv
