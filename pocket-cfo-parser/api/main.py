@@ -3,6 +3,10 @@ FastAPI Server Engine mapping AI extraction constraints and logic workflows
 dynamically into distinct operational HTTP intelligence endpoints securely.
 """
 import os
+import sys
+# Automatically bind the project root to the Python path avoiding module import errors
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import tempfile
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form
