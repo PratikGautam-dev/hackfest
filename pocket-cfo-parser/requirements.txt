@@ -1,0 +1,3 @@
+pdfplumber
+python-dateutil
+pytest
