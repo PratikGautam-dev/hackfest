@@ -155,7 +155,7 @@ def actions_route(user_id: str):
         actions.append({
             "priority": "red",
             "title": "Deficit Bounds Alert",
-            "message": "Operations evaluating at a loss natively. Explore pruning categorized heavy expenditures.",
+            "message": "You're operating at a loss this period. Review your top expense categories to cut costs.",
             "amount": abs(net_profit)
         })
         
@@ -165,7 +165,7 @@ def actions_route(user_id: str):
         actions.append({
             "priority": "amber",
             "title": "Missed Input Tax Credit Diagnostics",
-            "message": f"Detected {missed_itc} ambiguous occurrences logically unassigned. Add context explicitly to maximize margins.",
+            "message": f"You have {missed_itc} transactions we couldn't classify confidently. Review them to unlock potential ITC claims.",
             "amount": None
         })
         
@@ -174,7 +174,7 @@ def actions_route(user_id: str):
         actions.append({
             "priority": "amber",
             "title": "Review Classification Thresholds natively",
-            "message": f"AI models explicitly structured low certainty mapped bounding parameters across {low_confidence_count} transactions.",
+            "message": f"AI couldn't classify {low_confidence_count} transactions with high confidence. Review and tag them manually.",
             "amount": None
         })
         
@@ -183,16 +183,16 @@ def actions_route(user_id: str):
     if claimable_itc > 0:
         actions.append({
             "priority": "green",
-            "title": "ITC Recovery Margins Confirmed",
-            "message": "GST input offset correctly aggregated dynamically inherently structuring reimbursements reliably natively.",
+            "title": "Input Tax Credit Available",
+            "message": f"You can claim ₹{claimable_itc:,.2f} in GST credits. File your ITC claims to improve cashflow.",
             "amount": claimable_itc
         })
         
     if net_profit > 0:
         actions.append({
             "priority": "green",
-            "title": "Business Performance Profitable",
-            "message": "Valid operational revenue explicitly bounds mathematical expenses successfully positively natively safely cleanly.",
+            "title": "Business is Profitable",
+            "message": f"You made ₹{net_profit:,.2f} this period after expenses and GST recovery. Keep it up.",
             "amount": net_profit
         })
 
