@@ -9,13 +9,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tempfile
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Imports from pocket_cfo_parser core logic
 from pocket_cfo_parser.ingestion import ingest_sms, ingest_pdf
-from pocket_cfo_parser.db.mongo import get_transactions_by_user
+from pocket_cfo_parser.db.mongo import get_transactions_by_user, save_user
 from pocket_cfo_parser.models.transaction import Transaction
 from pocket_cfo_parser.agents.expense_agent import get_expense_summary
 from pocket_cfo_parser.agents.profit_agent import get_profit_summary
@@ -41,6 +41,24 @@ class SMSPayload(BaseModel):
     user_id: str
     text: str
 
+class UserCreatePayload(BaseModel):
+    name: str
+    phone: str
+    business_name: str
+
+@app.post("/users/create")
+def create_user_route(payload: UserCreatePayload):
+    """Dynamically structurally bounds OOP mappings routing native MongoDB user creation."""
+    user_id = save_user(payload.name, payload.phone, payload.business_name)
+    if not user_id:
+        raise HTTPException(status_code=500, detail="Failed to create user")
+    return {"success": True, "backend_user_id": user_id}
+
+@app.get("/users/{user_id}/profile")
+def user_profile_route(user_id: str):
+    """Evaluate topological boundaries aggregating transactional mapping counts securely natively."""
+    txns = get_transactions_by_user(user_id)
+    return {"user_id": user_id, "transaction_count": len(txns)}
 
 @app.get("/health")
 def health_check():
