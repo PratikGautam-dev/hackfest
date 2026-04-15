@@ -60,6 +60,14 @@ def user_profile_route(user_id: str):
     txns = get_transactions_by_user(user_id)
     return {"user_id": user_id, "transaction_count": len(txns)}
 
+@app.get("/transactions/{user_id}")
+def user_transactions_route(user_id: str):
+    """Exposes raw sequential MongoDB extractions cleanly bounded intrinsically iteratively."""
+    txns = _fetch_user_transactions(user_id)
+    sorted_txns = sorted(txns, key=lambda x: x.date, reverse=True)[:100]
+    return {"transactions": [t.to_dict() for t in sorted_txns], "user_id": user_id}
+
+
 @app.get("/health")
 def health_check():
     """Simple healthcheck evaluating operational runtime uptime."""
