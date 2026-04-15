@@ -28,7 +28,7 @@ Parsed transaction data is automatically categorized, mapped to a unified intern
    python -m venv venv
    
    # For Windows
-   venv\Scripts\activate
+   .venv\Scripts\activate
    
    # For Linux/MacOS
    source venv/bin/activate 
