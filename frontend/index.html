@@ -739,6 +739,84 @@
       .fs-tabs { flex-direction: column; }
       .fs-tab { border-radius: 8px; border-bottom: 1px solid var(--border); }
     }
+
+    /* ──── ENHANCED BOOKKEEPING ──── */
+    .book-details {
+      margin: 2rem 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .detail-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .detail-section h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(30,34,48,0.3);
+    }
+    .detail-item:last-child { border-bottom: none; }
+    .detail-item span:first-child { color: var(--muted); }
+    .detail-item span:last-child { font-weight: 600; color: var(--text); }
+    .monthly-trends {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .month-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(30,34,48,0.3);
+    }
+    .month-item:last-child { border-bottom: none; }
+    .month-details {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+    }
+    .month-details span {
+      color: var(--muted);
+    }
+    .parties-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .party-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(30,34,48,0.3);
+    }
+    .party-item:last-child { border-bottom: none; }
+    .party-item span:first-child { font-weight: 500; }
+    .party-item span:last-child { color: var(--muted); font-size: 0.85rem; }
+
+    @media (max-width: 768px) {
+      .book-details { grid-template-columns: 1fr; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .month-details { flex-direction: column; gap: 0.25rem; }
+    }
   </style>
 </head>
 <body>
@@ -2069,11 +2147,94 @@
         <div class="insight-row"><b>Transactions</b><b>${summary.transaction_count || 0}</b></div>
         <div class="insight-row"><span>Uncategorized</span><span>${summary.uncategorized_count || 0}</span></div>
         <div class="insight-row"><span>Low confidence</span><span>${summary.low_confidence_count || 0}</span></div>
-        <div class="insight-row"><span>Top categories</span><span>${Object.keys(data.bookkeeping_summary?.balance_summary?.category_counts || {}).slice(0,3).join(', ') || 'None'}</span></div>
+        <div class="insight-row"><span>GST Efficiency</span><span>${summary.gst_efficiency || 0}%</span></div>
+        <div class="insight-row"><span>Top categories</span><span>${Object.keys(summary.category_counts || {}).slice(0,3).join(', ') || 'None'}</span></div>
       `;
 
+      // Add detailed breakdowns
+      const detailedHtml = `
+        <div class="book-details">
+          <div class="detail-section">
+            <h4>Business vs Personal Breakdown</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span>Business Credits</span>
+                <span>₹${(summary.business_vs_personal?.business_credits || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div class="detail-item">
+                <span>Business Debits</span>
+                <span>₹${(summary.business_vs_personal?.business_debits || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div class="detail-item">
+                <span>Personal Credits</span>
+                <span>₹${(summary.business_vs_personal?.personal_credits || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div class="detail-item">
+                <span>Personal Debits</span>
+                <span>₹${(summary.business_vs_personal?.personal_debits || 0).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+          </div>
+
+          ${summary.gst_rate_breakdown && Object.keys(summary.gst_rate_breakdown).length > 0 ? `
+            <div class="detail-section">
+              <h4>GST Rate Breakdown</h4>
+              <div class="detail-grid">
+                ${Object.entries(summary.gst_rate_breakdown).map(([rate, amount]) => `
+                  <div class="detail-item">
+                    <span>${rate} GST</span>
+                    <span>₹${amount.toLocaleString('en-IN')}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${summary.monthly_trends && summary.monthly_trends.length > 0 ? `
+            <div class="detail-section">
+              <h4>Monthly Trends</h4>
+              <div class="monthly-trends">
+                ${summary.monthly_trends.slice(-6).map(month => `
+                  <div class="month-item">
+                    <span>${month.month}</span>
+                    <div class="month-details">
+                      <span>In: ₹${month.credits.toLocaleString('en-IN')}</span>
+                      <span>Out: ₹${month.debits.toLocaleString('en-IN')}</span>
+                      <span>Net: ₹${month.net.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${summary.largest_parties && summary.largest_parties.length > 0 ? `
+            <div class="detail-section">
+              <h4>Top Transaction Parties</h4>
+              <div class="parties-list">
+                ${summary.largest_parties.slice(0,8).map(party => `
+                  <div class="party-item">
+                    <span>${party.party}</span>
+                    <span>${party.count} transactions</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      // Insert detailed breakdown before the notes
+      const notesElement = document.getElementById('book-notes');
+      notesElement.insertAdjacentHTML('beforebegin', detailedHtml);
+
       const notes = data.bookkeeping_summary?.recommendations || [];
-      document.getElementById('book-notes').innerHTML = notes.length ? notes.map(n => `<div class="action-card amber"><div class="action-msg">${n}</div></div>`).join('') : '<div class="empty-state">No bookkeeping notes generated</div>';
+      const suggestions = summary.suggestions || [];
+      const actionItems = summary.action_items || [];
+      const insights = summary.insights || [];
+
+      const allNotes = [...notes, ...suggestions.map(s => s.message), ...actionItems.map(a => a.message), ...insights];
+      document.getElementById('book-notes').innerHTML = allNotes.length ? allNotes.map(n => `<div class="action-card amber"><div class="action-msg">${n}</div></div>`).join('') : '<div class="empty-state">No bookkeeping notes generated</div>';
       document.getElementById('book-raw').textContent = JSON.stringify(data, null, 2);
       document.getElementById('book-grid').style.display = 'grid';
       showToast('Bookkeeping summary loaded', 'success');
@@ -2312,76 +2473,75 @@
   async function fetchFinancialStatements() {
     const uid = document.getElementById('fs-uid').value.trim() || USER_ID;
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
-    const el = document.getElementById('fs-result');
-    el.innerHTML = '<div class="text-muted">⏳ Generating financial statements…</div>';
+    
+    // Show loading state
+    document.getElementById('fs-pl').innerHTML = '<div class="text-muted">⏳ Generating P&L…</div>';
+    document.getElementById('fs-bs').innerHTML = '<div class="text-muted">⏳ Generating Balance Sheet…</div>';
+    document.getElementById('fs-cf').innerHTML = '<div class="text-muted">⏳ Generating Cash Flow…</div>';
+    
     try {
       const r = await fetch(API + '/financial-statements/' + uid);
       const data = await r.json();
-      if (!data || !data.statements) throw new Error('No financial statements data');
+      if (!data || !data.financial_statements) throw new Error('No financial statements data');
       
-      const { statements } = data;
-      el.innerHTML = `
-        <div class="fs-tabs">
-          <button class="fs-tab active" onclick="showFSTab('pnl')">P&L Statement</button>
-          <button class="fs-tab" onclick="showFSTab('balance')">Balance Sheet</button>
-          <button class="fs-tab" onclick="showFSTab('cashflow')">Cash Flow</button>
+      const { financial_statements: statements } = data;
+      
+      // Update P&L
+      document.getElementById('fs-pl').innerHTML = `
+        <div class="fs-section">
+          <h5>Revenue</h5>
+          ${Object.entries(statements.profit_and_loss?.revenue || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
         </div>
-        <div id="pnl-content" class="fs-content active">
-          <h4>Profit & Loss Statement</h4>
-          <div class="fs-grid">
-            <div class="fs-section">
-              <h5>Revenue</h5>
-              ${Object.entries(statements.pnl?.revenue || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
-            </div>
-            <div class="fs-section">
-              <h5>Expenses</h5>
-              ${Object.entries(statements.pnl?.expenses || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
-            </div>
-            <div class="fs-total">
-              <div class="fs-row"><span>Net Profit</span><span>₹${Number(statements.pnl?.net_profit || 0).toLocaleString('en-IN')}</span></div>
-            </div>
-          </div>
+        <div class="fs-section">
+          <h5>Expenses</h5>
+          ${Object.entries(statements.profit_and_loss?.expenses || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
         </div>
-        <div id="balance-content" class="fs-content">
-          <h4>Balance Sheet</h4>
-          <div class="fs-grid">
-            <div class="fs-section">
-              <h5>Assets</h5>
-              ${Object.entries(statements.balance_sheet?.assets || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
-            </div>
-            <div class="fs-section">
-              <h5>Liabilities</h5>
-              ${Object.entries(statements.balance_sheet?.liabilities || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
-            </div>
-            <div class="fs-total">
-              <div class="fs-row"><span>Equity</span><span>₹${Number(statements.balance_sheet?.equity || 0).toLocaleString('en-IN')}</span></div>
-            </div>
-          </div>
-        </div>
-        <div id="cashflow-content" class="fs-content">
-          <h4>Cash Flow Statement</h4>
-          <div class="fs-grid">
-            <div class="fs-section">
-              <h5>Operating Activities</h5>
-              ${Object.entries(statements.cash_flow?.operating || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
-            </div>
-            <div class="fs-section">
-              <h5>Investing Activities</h5>
-              ${Object.entries(statements.cash_flow?.investing || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
-            </div>
-            <div class="fs-section">
-              <h5>Financing Activities</h5>
-              ${Object.entries(statements.cash_flow?.financing || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
-            </div>
-            <div class="fs-total">
-              <div class="fs-row"><span>Net Cash Flow</span><span>₹${Number(statements.cash_flow?.net_cash_flow || 0).toLocaleString('en-IN')}</span></div>
-            </div>
-          </div>
+        <div class="fs-total">
+          <div class="fs-row"><span>Net Profit</span><span>₹${Number(statements.profit_and_loss?.net_profit || 0).toLocaleString('en-IN')}</span></div>
         </div>
       `;
+      
+      // Update Balance Sheet
+      document.getElementById('fs-bs').innerHTML = `
+        <div class="fs-section">
+          <h5>Assets</h5>
+          ${Object.entries(statements.balance_sheet?.assets || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
+        </div>
+        <div class="fs-section">
+          <h5>Liabilities</h5>
+          ${Object.entries(statements.balance_sheet?.liabilities || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
+        </div>
+        <div class="fs-total">
+          <div class="fs-row"><span>Equity</span><span>₹${Number(statements.balance_sheet?.equity || 0).toLocaleString('en-IN')}</span></div>
+        </div>
+      `;
+      
+      // Update Cash Flow
+      document.getElementById('fs-cf').innerHTML = `
+        <div class="fs-section">
+          <h5>Operating Activities</h5>
+          ${Object.entries(statements.cash_flow_statement?.operating_activities || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
+        </div>
+        <div class="fs-section">
+          <h5>Investing Activities</h5>
+          ${Object.entries(statements.cash_flow_statement?.investing_activities || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
+        </div>
+        <div class="fs-section">
+          <h5>Financing Activities</h5>
+          ${Object.entries(statements.cash_flow_statement?.financing_activities || {}).map(([k,v]) => `<div class="fs-row"><span>${k}</span><span>₹${Number(v).toLocaleString('en-IN')}</span></div>`).join('')}
+        </div>
+        <div class="fs-total">
+          <div class="fs-row"><span>Net Cash Flow</span><span>₹${Number(statements.cash_flow_statement?.net_change_in_cash || 0).toLocaleString('en-IN')}</span></div>
+        </div>
+      `;
+      
+      document.getElementById('fs-raw').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('fs-grid').style.display = 'grid';
       showToast('Financial statements generated', 'success');
     } catch (e) {
-      el.innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('fs-pl').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('fs-bs').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('fs-cf').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
       showToast('Failed to generate financial statements', 'error');
     }
   }
@@ -2399,19 +2559,24 @@
   async function fetchIncomeTax() {
     const uid = document.getElementById('tax-uid').value.trim() || USER_ID;
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
-    const el = document.getElementById('tax-result');
-    el.innerHTML = '<div class="text-muted">⏳ Calculating income tax…</div>';
+    
+    // Show loading state
+    document.getElementById('tax-summary').innerHTML = '<div class="text-muted">⏳ Calculating tax summary…</div>';
+    document.getElementById('tax-liability').innerHTML = '<div class="text-muted">⏳ Calculating tax liability…</div>';
+    
     try {
       const r = await fetch(API + '/income-tax/' + uid);
       const data = await r.json();
-      if (!data || !data.tax_calculation) throw new Error('No tax calculation data');
+      if (!data || !data.income_tax_summary) throw new Error('No tax calculation data');
       
-      const { tax_calculation } = data;
-      el.innerHTML = `
+      const { income_tax_summary: tax_calculation } = data;
+      
+      // Update tax summary
+      document.getElementById('tax-summary').innerHTML = `
         <div class="tax-summary">
           <div class="tax-card">
             <div class="tax-label">Gross Income</div>
-            <div class="tax-amount">₹${Number(tax_calculation.gross_income || 0).toLocaleString('en-IN')}</div>
+            <div class="tax-amount">₹${Number(tax_calculation.gross_total_income || 0).toLocaleString('en-IN')}</div>
           </div>
           <div class="tax-card">
             <div class="tax-label">Deductions</div>
@@ -2420,10 +2585,6 @@
           <div class="tax-card">
             <div class="tax-label">Taxable Income</div>
             <div class="tax-amount">₹${Number(tax_calculation.taxable_income || 0).toLocaleString('en-IN')}</div>
-          </div>
-          <div class="tax-card primary">
-            <div class="tax-label">Tax Liability</div>
-            <div class="tax-amount">₹${Number(tax_calculation.tax_liability || 0).toLocaleString('en-IN')}</div>
           </div>
         </div>
         <div class="tax-breakdown">
@@ -2437,6 +2598,14 @@
             `).join('')}
           </div>
         </div>
+      `;
+      
+      // Update tax liability
+      document.getElementById('tax-liability').innerHTML = `
+        <div class="tax-card primary" style="margin-bottom: 1rem;">
+          <div class="tax-label">Tax Liability</div>
+          <div class="tax-amount">₹${Number(tax_calculation.tax_liability || 0).toLocaleString('en-IN')}</div>
+        </div>
         <div class="tax-recommendations">
           <h4>Tax Saving Recommendations</h4>
           ${(tax_calculation.recommendations || []).map(rec => `
@@ -2446,9 +2615,13 @@
           `).join('') || '<div class="empty-state">No recommendations available</div>'}
         </div>
       `;
+      
+      document.getElementById('tax-raw').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('tax-grid').style.display = 'grid';
       showToast('Income tax calculated', 'success');
     } catch (e) {
-      el.innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('tax-summary').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('tax-liability').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
       showToast('Failed to calculate income tax', 'error');
     }
   }
@@ -2459,15 +2632,20 @@
   async function fetchReconciliation() {
     const uid = document.getElementById('rec-uid').value.trim() || USER_ID;
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
-    const el = document.getElementById('rec-result');
-    el.innerHTML = '<div class="text-muted">⏳ Performing reconciliation…</div>';
+    
+    // Show loading state
+    document.getElementById('rec-issues').innerHTML = '<div class="text-muted">⏳ Checking for issues…</div>';
+    document.getElementById('rec-balance').innerHTML = '<div class="text-muted">⏳ Checking balances…</div>';
+    
     try {
       const r = await fetch(API + '/reconciliation/' + uid);
       const data = await r.json();
-      if (!data || !data.reconciliation) throw new Error('No reconciliation data');
+      if (!data || !data.reconciliation_report) throw new Error('No reconciliation data');
       
-      const { reconciliation } = data;
-      el.innerHTML = `
+      const { reconciliation_report: reconciliation } = data;
+      
+      // Update issues summary
+      document.getElementById('rec-issues').innerHTML = `
         <div class="rec-summary">
           <div class="rec-card">
             <div class="rec-label">Total Transactions</div>
@@ -2490,12 +2668,11 @@
           <div class="rec-issues">
             <h4>Duplicate Transactions</h4>
             <div class="issues-list">
-              ${reconciliation.duplicates.map(dup => `
+              ${reconciliation.duplicates.slice(0,3).map(dup => `
                 <div class="issue-card">
                   <div class="issue-header">Duplicate Transaction</div>
                   <div class="issue-details">
                     <div>Amount: ₹${Number(dup.amount).toLocaleString('en-IN')}</div>
-                    <div>Date: ${dup.date}</div>
                     <div>Description: ${dup.description}</div>
                   </div>
                 </div>
@@ -2503,11 +2680,15 @@
             </div>
           </div>
         ` : ''}
+      `;
+      
+      // Update balance check
+      document.getElementById('rec-balance').innerHTML = `
         ${reconciliation.balance_issues?.length ? `
           <div class="rec-issues">
             <h4>Balance Issues</h4>
             <div class="issues-list">
-              ${reconciliation.balance_issues.map(issue => `
+              ${reconciliation.balance_issues.slice(0,3).map(issue => `
                 <div class="issue-card warning">
                   <div class="issue-header">Balance Mismatch</div>
                   <div class="issue-details">
@@ -2519,7 +2700,7 @@
               `).join('')}
             </div>
           </div>
-        ` : ''}
+        ` : '<div class="empty-state">No balance issues found</div>'}
         <div class="rec-recommendations">
           <h4>Reconciliation Recommendations</h4>
           ${(reconciliation.recommendations || []).map(rec => `
@@ -2529,9 +2710,13 @@
           `).join('') || '<div class="empty-state">No recommendations available</div>'}
         </div>
       `;
+      
+      document.getElementById('rec-raw').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('rec-grid').style.display = 'grid';
       showToast('Reconciliation completed', 'success');
     } catch (e) {
-      el.innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('rec-issues').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('rec-balance').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
       showToast('Failed to perform reconciliation', 'error');
     }
   }
@@ -2542,23 +2727,28 @@
   async function fetchAudit() {
     const uid = document.getElementById('audit-uid').value.trim() || USER_ID;
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
-    const el = document.getElementById('audit-result');
-    el.innerHTML = '<div class="text-muted">⏳ Performing audit…</div>';
+    
+    // Show loading state
+    document.getElementById('audit-gst').innerHTML = '<div class="text-muted">⏳ Performing audit…</div>';
+    document.getElementById('audit-suspicious').innerHTML = '<div class="text-muted">⏳ Performing audit…</div>';
+    document.getElementById('audit-raw').innerHTML = '<div class="text-muted">⏳ Performing audit…</div>';
+    
+    // Show the grid
+    document.getElementById('audit-grid').style.display = 'grid';
+    
     try {
       const r = await fetch(API + '/audit/' + uid);
       const data = await r.json();
-      if (!data || !data.audit) throw new Error('No audit data');
+      if (!data || !data.audit_report) throw new Error('No audit data');
       
-      const { audit } = data;
-      el.innerHTML = `
+      const { audit_report: audit } = data;
+      
+      // Update GST Validation section
+      document.getElementById('audit-gst').innerHTML = `
         <div class="audit-summary">
           <div class="audit-card">
             <div class="audit-label">GST Compliance</div>
             <div class="audit-amount ${audit.gst_compliance?.status === 'compliant' ? 'success' : 'error'}">${audit.gst_compliance?.status || 'Unknown'}</div>
-          </div>
-          <div class="audit-card">
-            <div class="audit-label">Anomalies Detected</div>
-            <div class="audit-amount">${audit.anomalies?.length || 0}</div>
           </div>
           <div class="audit-card">
             <div class="audit-label">Risk Level</div>
@@ -2585,7 +2775,17 @@
               `).join('')}
             </div>
           </div>
-        ` : ''}
+        ` : '<div class="empty-state">No GST compliance issues found</div>'}
+      `;
+      
+      // Update Suspicious Transactions section
+      document.getElementById('audit-suspicious').innerHTML = `
+        <div class="audit-summary">
+          <div class="audit-card">
+            <div class="audit-label">Anomalies Detected</div>
+            <div class="audit-amount">${audit.anomalies?.length || 0}</div>
+          </div>
+        </div>
         ${audit.anomalies?.length ? `
           <div class="audit-issues">
             <h4>Anomalies Detected</h4>
@@ -2603,19 +2803,27 @@
               `).join('')}
             </div>
           </div>
+        ` : '<div class="empty-state">No anomalies detected</div>'}
+        ${audit.recommendations?.length ? `
+          <div class="audit-recommendations">
+            <h4>Audit Recommendations</h4>
+            ${(audit.recommendations || []).map(rec => `
+              <div class="action-card blue">
+                <div class="action-msg">${rec}</div>
+              </div>
+            `).join('')}
+          </div>
         ` : ''}
-        <div class="audit-recommendations">
-          <h4>Audit Recommendations</h4>
-          ${(audit.recommendations || []).map(rec => `
-            <div class="action-card blue">
-              <div class="action-msg">${rec}</div>
-            </div>
-          `).join('') || '<div class="empty-state">No recommendations available</div>'}
-        </div>
       `;
+      
+      // Update raw response
+      document.getElementById('audit-raw').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      
       showToast('Audit completed', 'success');
     } catch (e) {
-      el.innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('audit-gst').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('audit-suspicious').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      document.getElementById('audit-raw').innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
       showToast('Failed to perform audit', 'error');
     }
   }
