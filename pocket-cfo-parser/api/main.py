@@ -4,6 +4,7 @@ dynamically into distinct operational HTTP intelligence endpoints securely.
 """
 import os
 import sys
+from datetime import datetime
 # Automatically bind the project root to the Python path avoiding module import errors
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -120,20 +121,27 @@ def _fetch_user_transactions(user_id: str) -> list[Transaction]:
     txns = []
     
     for r in raw_dicts:
-        # Since 'id' is implicitly hashed by dependencies via __post_init__, 
-        # reconstructing fields preserves boundaries cleanly automatically.
+        raw_date = r.get("date")
+        if isinstance(raw_date, str):
+            try:
+                txn_date = datetime.fromisoformat(raw_date)
+            except ValueError:
+                txn_date = datetime.now()
+        elif isinstance(raw_date, datetime):
+            txn_date = raw_date
+        else:
+            txn_date = datetime.now()
+
         txn = Transaction(
             amount=r.get("amount", 0.0),
             type=r.get("type", "debit"),
             party=r.get("party", "Unknown"),
-            date=r.get("date"),
-            source=r.get("source", "db"),
+            date=txn_date,
+            source=r.get("source", "sms"),
             category=r.get("category", "Uncategorized"),
             raw_text=r.get("raw_text", ""),
             confidence=r.get("confidence", 0.9)
         )
-        # Note: We aren't preserving the exact _id mapping inside the newly constructed instance 
-        # but for analytics processing dependencies, structural OOP parameters logically resolve appropriately.
         txns.append(txn)
         
     return txns

@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pocket CFO — Agent Testing Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0D0F12;
+      --bg2:      #111318;
+      --bg3:      #16191F;
+      --border:   #1E2230;
+      --amber:    #F59E0B;
+      --amber-dim:#7A4F00;
+      --emerald:  #10B981;
+      --rose:     #F43F5E;
+      --indigo:   #6366F1;
+      --sky:      #38BDF8;
+      --text:     #E4E7EC;
+      --muted:    #6B7280;
+      --card-glow-amber: rgba(245,158,11,0.08);
+      --card-glow-emerald: rgba(16,185,129,0.08);
+      --card-glow-rose: rgba(244,63,94,0.08);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      background-image:
+        linear-gradient(to right, #80808010 1px, transparent 1px),
+        linear-gradient(to bottom, #80808010 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ──── TOPBAR ──── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      background: rgba(13,15,18,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+    }
+    .logo-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--amber), #b45309);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo span { color: var(--amber); }
+    .api-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: pulse 2s infinite;
+    }
+    .dot.online { background: var(--emerald); }
+    .dot.offline { background: var(--rose); animation: none; }
+    @keyframes pulse {
+      0%,100% { opacity:1; } 50% { opacity:0.4; }
+    }
+    #api-url-display {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--sky);
+      background: rgba(56,189,248,0.08);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(56,189,248,0.2);
+    }
+
+    /* ──── LAYOUT ──── */
+    .app {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* ──── SIDEBAR ──── */
+    nav {
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 1rem;
+      background: rgba(17,19,24,0.6);
+      position: sticky;
+      top: 64px;
+      height: calc(100vh - 64px);
+      overflow-y: auto;
+    }
+    .nav-section {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 1.5rem 0 0.5rem 0.5rem;
+    }
+    .nav-section:first-child { margin-top: 0; }
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    nav a:hover, nav a.active {
+      color: var(--text);
+      background: var(--bg3);
+    }
+    nav a.active { color: var(--amber); }
+    nav a .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+    nav a .badge {
+      margin-left: auto;
+      font-size: 0.65rem;
+      background: var(--amber-dim);
+      color: var(--amber);
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    /* ──── MAIN CONTENT ──── */
+    main {
+      padding: 2rem;
+      overflow-x: hidden;
+    }
+
+    /* ──── SECTION ROUTING ──── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ──── PAGE HEADER ──── */
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff 30%, var(--amber));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .page-header p { color: var(--muted); font-size: 0.875rem; margin-top: 4px; }
+
+    /* ──── CONFIG ROW ──── */
+    .config-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .config-row .field { flex: 1; min-width: 220px; }
+
+    /* ──── FORM ELEMENTS ──── */
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      padding: 0.6rem 0.85rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+    }
+    textarea { resize: vertical; min-height: 80px; font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+
+    /* ──── BUTTONS ──── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0.6rem 1.4rem;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--amber), #b45309);
+      color: #000;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(245,158,11,0.3); }
+    .btn-primary:active { transform: none; }
+    .btn-ghost {
+      background: var(--bg2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* ──── CARDS ──── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .icon { font-size: 1rem; }
+
+    /* ──── GRID LAYOUTS ──── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+
+    @media (max-width: 1100px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .app { grid-template-columns: 1fr; }
+      nav { display: none; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    /* ──── METRIC CARDS ──── */
+    .metric-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .metric-card.amber::before { background: linear-gradient(90deg, var(--amber), transparent); }
+    .metric-card.emerald::before { background: linear-gradient(90deg, var(--emerald), transparent); }
+    .metric-card.rose::before { background: linear-gradient(90deg, var(--rose), transparent); }
+    .metric-card.indigo::before { background: linear-gradient(90deg, var(--indigo), transparent); }
+
+    .metric-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .metric-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-top: 0.4rem;
+    }
+    .metric-card.amber .metric-value { color: var(--amber); }
+    .metric-card.emerald .metric-value { color: var(--emerald); }
+    .metric-card.rose .metric-value { color: var(--rose); }
+    .metric-card.indigo .metric-value { color: var(--indigo); }
+    .metric-sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+    /* ──── RESPONSE PANEL ──── */
+    .response-panel {
+      background: #0A0C0F;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: #9CA3AF;
+      overflow-y: auto;
+      max-height: 400px;
+      position: relative;
+    }
+    .response-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .response-toolbar .method { color: var(--emerald); font-weight: 600; }
+    .response-toolbar .status-code { padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.7rem; }
+    .status-200 { background: rgba(16,185,129,0.15); color: var(--emerald); }
+    .status-4xx, .status-5xx { background: rgba(244,63,94,0.15); color: var(--rose); }
+    .response-body { padding: 1rem; white-space: pre-wrap; line-height: 1.6; }
+    .response-placeholder {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    /* ──── SPINNER ──── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ──── ACTION CARDS ──── */
+    .action-card {
+      border-radius: 12px;
+      padding: 1.25rem;
+      border-left-width: 3px;
+      border-left-style: solid;
+      margin-bottom: 0.75rem;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .action-card.red { border-left-color: var(--rose); background: linear-gradient(135deg, rgba(244,63,94,0.06), var(--bg2)); }
+    .action-card.amber { border-left-color: var(--amber); background: linear-gradient(135deg, rgba(245,158,11,0.06), var(--bg2)); }
+    .action-card.green { border-left-color: var(--emerald); background: linear-gradient(135deg, rgba(16,185,129,0.06), var(--bg2)); }
+    .action-priority {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .action-card.red .action-priority { color: var(--rose); }
+    .action-card.amber .action-priority { color: var(--amber); }
+    .action-card.green .action-priority { color: var(--emerald); }
+    .action-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+    .action-msg { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+    .action-amount { font-family: 'DM Mono', monospace; font-size: 0.85rem; margin-top: 8px; color: var(--amber); }
+
+    /* ──── TABLE ──── */
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead { background: var(--bg3); }
+    th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(30,34,48,0.6);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .badge-credit { background: rgba(16,185,129,0.15); color: var(--emerald); }
+    .badge-debit { background: rgba(244,63,94,0.15); color: var(--rose); }
+    .badge-high { background: rgba(16,185,129,0.15); color: var(--emerald); }
+    .badge-med { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .badge-low { background: rgba(244,63,94,0.15); color: var(--rose); }
+    .conf-bar { width: 60px; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; margin-top: 4px; }
+    .conf-fill { height: 100%; border-radius: 2px; }
+
+    /* ──── SMS SAMPLES ──── */
+    .sms-samples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+    .sms-chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'DM Mono', monospace;
+    }
+    .sms-chip:hover { border-color: var(--amber); color: var(--amber); }
+
+    /* ──── TOAST ──── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 999;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { background: rgba(16,185,129,0.9); color: #000; }
+    #toast.error { background: rgba(244,63,94,0.9); color: #fff; }
+
+    /* ──── MISC ──── */
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-3 { margin-top: 1.5rem; }
+    .mb-1 { margin-bottom: 0.5rem; }
+    .mb-2 { margin-bottom: 1rem; }
+    .flex { display: flex; }
+    .flex-gap { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .text-muted { color: var(--muted); font-size: 0.82rem; }
+    .text-mono { font-family: 'DM Mono', monospace; font-size: 0.82rem; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 0.85rem; }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+    .insight-row { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+    .insight-row:last-child { border-bottom: none; }
+    .progress-bar { width: 120px; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+    .gst-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 6px;
+      font-size: 0.72rem; font-weight: 600;
+    }
+    .gst-chip.itc-yes { background: rgba(16,185,129,0.15); color: var(--emerald); }
+    .gst-chip.itc-no  { background: rgba(244,63,94,0.12); color: var(--rose); }
+
+    /* Animate content in */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .animate { animation: fadeUp 0.35s ease forwards; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">💰</div>
+    Pocket <span>CFO</span>&nbsp;Agent
+  </div>
+  <div class="api-status">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Connecting…</span>
+    <span id="api-url-display">http://localhost:8000</span>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <nav>
+    <div class="nav-section">Setup</div>
+    <a class="active" onclick="navigate('setup')" id="nav-setup">
+      <span class="nav-icon">⚙️</span> Configuration
+    </a>
+    <a onclick="navigate('users')" id="nav-users">
+      <span class="nav-icon">👤</span> Create User
+    </a>
+
+    <div class="nav-section">Ingestion</div>
+    <a onclick="navigate('sms')" id="nav-sms">
+      <span class="nav-icon">📱</span> SMS Ingest
+      <span class="badge">POST</span>
+    </a>
+    <a onclick="navigate('pdf')" id="nav-pdf">
+      <span class="nav-icon">📄</span> PDF Ingest
+      <span class="badge">POST</span>
+    </a>
+
+    <div class="nav-section">Intelligence</div>
+    <a onclick="navigate('transactions')" id="nav-transactions">
+      <span class="nav-icon">📊</span> Transactions
+    </a>
+    <a onclick="navigate('insights')" id="nav-insights">
+      <span class="nav-icon">🔍</span> Insights
+    </a>
+    <a onclick="navigate('actions')" id="nav-actions">
+      <span class="nav-icon">⚡</span> Action Cards
+    </a>
+
+    <div class="nav-section">Tools</div>
+    <a onclick="navigate('gst')" id="nav-gst">
+      <span class="nav-icon">🏛️</span> GST Analyzer
+    </a>
+    <a onclick="navigate('health')" id="nav-health">
+      <span class="nav-icon">❤️</span> Health Check
+    </a>
+  </nav>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- ── SETUP ── -->
+    <section class="section active" id="section-setup">
+      <div class="page-header">
+        <h1>Agent Testing Lab</h1>
+        <p>Configure your backend URL and user ID to start testing all API agents.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">🔌</span> Backend Connection</div>
+          <label>API Base URL</label>
+          <input type="text" id="cfg-api-url" value="http://localhost:8000" placeholder="http://localhost:8000" />
+          <div class="mt-2">
+            <label>Default User ID</label>
+            <input type="text" id="cfg-user-id" value="" placeholder="Paste your backend_user_id here" />
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-primary" onclick="saveConfig()">💾 Save & Test Connection</button>
+            <button class="btn btn-ghost" onclick="navigate('health')">🏥 Health Check</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">📋</span> Quick Start Guide</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <div style="min-width:24px; height:24px; border-radius:50%; background:var(--amber); color:#000; display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">1</div>
+              <div class="text-muted">Start your FastAPI server: <code style="color:var(--sky);">uvicorn api.main:app --reload</code></div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <div style="min-width:24px; height:24px; border-radius:50%; background:var(--amber); color:#000; display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">2</div>
+              <div class="text-muted">Create a test user via the <b style="color:var(--text);">Create User</b> tab and copy the returned user ID.</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <div style="min-width:24px; height:24px; border-radius:50%; background:var(--amber); color:#000; display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">3</div>
+              <div class="text-muted">Paste the user ID above, then use <b style="color:var(--text);">SMS Ingest</b> to feed sample bank messages.</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <div style="min-width:24px; height:24px; border-radius:50%; background:var(--amber); color:#000; display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">4</div>
+              <div class="text-muted">Explore <b style="color:var(--text);">Action Cards, Insights</b> and <b style="color:var(--text);">GST Analyzer</b> to validate agent logic.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="grid-4 animate" id="health-metrics">
+        <div class="metric-card amber">
+          <div class="metric-label">API Status</div>
+          <div class="metric-value" id="m-status">—</div>
+          <div class="metric-sub">Backend health</div>
+        </div>
+        <div class="metric-card emerald">
+          <div class="metric-label">Response Time</div>
+          <div class="metric-value" id="m-latency">—</div>
+          <div class="metric-sub">Last ping</div>
+        </div>
+        <div class="metric-card indigo">
+          <div class="metric-label">Configured User</div>
+          <div class="metric-value" style="font-size:0.85rem; word-break:break-all;" id="m-uid">None</div>
+          <div class="metric-sub">Active session</div>
+        </div>
+        <div class="metric-card rose">
+          <div class="metric-label">API Version</div>
+          <div class="metric-value">1.0</div>
+          <div class="metric-sub">Pocket CFO Agent</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CREATE USER ── -->
+    <section class="section" id="section-users">
+      <div class="page-header">
+        <h1>Create User</h1>
+        <p>Register a new test user to generate a backend_user_id for all subsequent API calls.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">👤</span> POST /users/create</div>
+          <label>Full Name</label>
+          <input type="text" id="u-name" placeholder="e.g. Rajesh Kumar" />
+          <div class="mt-2">
+            <label>Phone Number</label>
+            <input type="text" id="u-phone" placeholder="+919876543210" />
+          </div>
+          <div class="mt-2">
+            <label>Business Name</label>
+            <input type="text" id="u-biz" placeholder="e.g. Kumar Electronics" />
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-primary" id="btn-create-user" onclick="createUser()">🚀 Create User</button>
+            <button class="btn btn-ghost" onclick="fillDemoUser()">🎲 Fill Demo Data</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="response-panel">
+            <div class="response-toolbar">
+              <span><span class="method">POST</span> &nbsp;/users/create</span>
+              <span id="user-status-badge"></span>
+            </div>
+            <div id="user-response" class="response-placeholder">
+              ☝️ Submit the form to see the response
+            </div>
+          </div>
+
+          <div class="card mt-2" id="uid-copy-card" style="display:none;">
+            <div class="card-title" style="color:var(--emerald);">✅ User Created!</div>
+            <div class="text-muted mb-1">backend_user_id — copy this into Configuration</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="text" id="created-uid" readonly style="color:var(--amber); font-family:'DM Mono',monospace;" />
+              <button class="btn btn-ghost" onclick="copyUID()" style="white-space:nowrap;">📋 Copy</button>
+              <button class="btn btn-primary" onclick="useUID()" style="white-space:nowrap;">Use It</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SMS INGEST ── -->
+    <section class="section" id="section-sms">
+      <div class="page-header">
+        <h1>SMS Ingest Agent</h1>
+        <p>Feed raw bank SMS messages to the parser agent and watch it extract structured transactions.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">📱</span> POST /ingest/sms</div>
+          <label>User ID</label>
+          <input type="text" id="sms-uid" placeholder="backend_user_id" />
+
+          <div class="mt-2">
+            <label>Raw SMS Text</label>
+            <textarea id="sms-text" rows="5" placeholder="Paste bank SMS here…"></textarea>
+          </div>
+
+          <div class="mt-2">
+            <label>Sample SMS Messages</label>
+            <div class="sms-samples">
+              <div class="sms-chip" onclick="loadSMS(0)">✅ Swiggy ₹349</div>
+              <div class="sms-chip" onclick="loadSMS(1)">✅ Amazon ₹2,199</div>
+              <div class="sms-chip" onclick="loadSMS(2)">✅ Razorpay ₹15,000 Credit</div>
+              <div class="sms-chip" onclick="loadSMS(3)">✅ Airtel ₹599</div>
+              <div class="sms-chip" onclick="loadSMS(4)">✅ Porter ₹850</div>
+              <div class="sms-chip" onclick="loadSMS(5)">✅ Salary Credit ₹45,000</div>
+              <div class="sms-chip" onclick="loadSMS(6)">✅ HDFC EMI ₹8,500</div>
+              <div class="sms-chip" onclick="loadSMS(7)">✅ AWS ₹3,240</div>
+            </div>
+          </div>
+
+          <div class="flex-gap mt-2">
+            <button class="btn btn-primary" id="btn-sms" onclick="ingestSMS()">⚡ Parse SMS</button>
+            <button class="btn btn-ghost" onclick="clearSMS()">🗑️ Clear</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="response-panel">
+            <div class="response-toolbar">
+              <span><span class="method">POST</span> &nbsp;/ingest/sms</span>
+              <span id="sms-status-badge"></span>
+            </div>
+            <div id="sms-response" class="response-placeholder">
+              ☝️ Paste an SMS and hit Parse
+            </div>
+          </div>
+
+          <div class="card mt-2" id="sms-parsed-card" style="display:none;">
+            <div class="card-title"><span class="icon">🧠</span> Parsed Transaction</div>
+            <div id="sms-parsed-visual"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PDF INGEST ── -->
+    <section class="section" id="section-pdf">
+      <div class="page-header">
+        <h1>PDF Bank Statement Ingest</h1>
+        <p>Upload a bank statement PDF to extract and classify all transactions automatically.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">📄</span> POST /ingest/pdf</div>
+          <label>User ID</label>
+          <input type="text" id="pdf-uid" placeholder="backend_user_id" />
+          <div class="mt-2">
+            <label>Bank Statement PDF</label>
+            <input type="file" id="pdf-file" accept=".pdf" />
+          </div>
+          <div class="mt-2">
+            <button class="btn btn-primary" id="btn-pdf" onclick="ingestPDF()">📤 Upload & Parse</button>
+          </div>
+          <div class="mt-2 text-muted" style="font-size:0.78rem; line-height:1.6;">
+            <b style="color:var(--amber);">Supported formats:</b> SBI, HDFC, ICICI, Axis, Kotak bank statements (pdfplumber extraction). Agent automatically deduplicates and classifies each row.
+          </div>
+        </div>
+
+        <div class="response-panel" style="height:fit-content">
+          <div class="response-toolbar">
+            <span><span class="method">POST</span> &nbsp;/ingest/pdf</span>
+            <span id="pdf-status-badge"></span>
+          </div>
+          <div id="pdf-response" class="response-placeholder">
+            ☝️ Upload a PDF to see extracted transactions
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TRANSACTIONS ── -->
+    <section class="section" id="section-transactions">
+      <div class="page-header">
+        <h1>Transaction Ledger</h1>
+        <p>View all parsed transactions for a user, with live search and filter controls.</p>
+      </div>
+
+      <div class="card mb-2">
+        <div class="flex-gap items-center">
+          <div style="flex:1; min-width: 200px;">
+            <label>User ID</label>
+            <input type="text" id="txn-uid" placeholder="backend_user_id" />
+          </div>
+          <div style="flex:1; min-width: 160px;">
+            <label>Filter Type</label>
+            <select id="txn-filter">
+              <option value="all">All Transactions</option>
+              <option value="credit">Credit Only</option>
+              <option value="debit">Debit Only</option>
+            </select>
+          </div>
+          <div style="flex:1.5; min-width: 200px;">
+            <label>Search Party</label>
+            <input type="text" id="txn-search" placeholder="Search merchant name…" oninput="filterTable()" />
+          </div>
+          <div style="padding-top:1.5rem;">
+            <button class="btn btn-primary" onclick="fetchTransactions()">🔄 Fetch</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="txn-metrics" class="grid-4 mb-2" style="display:none;"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Party</th>
+              <th>Amount</th>
+              <th>Type</th>
+              <th>Category</th>
+              <th>Source</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody id="txn-tbody">
+            <tr><td colspan="7"><div class="empty-state"><div class="icon">📊</div>Fetch transactions to populate the ledger</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── INSIGHTS ── -->
+    <section class="section" id="section-insights">
+      <div class="page-header">
+        <h1>Financial Intelligence</h1>
+        <p>Expense summaries, profit analysis and spending breakdowns from the Expense & Profit agents.</p>
+      </div>
+
+      <div class="flex-gap items-center mb-2">
+        <div style="flex:1; max-width:340px;">
+          <label>User ID</label>
+          <input type="text" id="ins-uid" placeholder="backend_user_id" />
+        </div>
+        <div style="padding-top:1.5rem;">
+          <button class="btn btn-primary" onclick="fetchInsights()">🔍 Analyze</button>
+        </div>
+      </div>
+
+      <div class="grid-2" id="insights-grid" style="display:none;">
+        <div class="card">
+          <div class="card-title"><span class="icon">💸</span> Expense Summary</div>
+          <div id="expense-content"><div class="empty-state">Loading…</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">📈</span> Profit Summary</div>
+          <div id="profit-content"><div class="empty-state">Loading…</div></div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title"><span class="icon">📦</span> Raw API Response</div>
+          <div class="response-panel" style="max-height:300px;">
+            <div id="insights-raw" class="response-body"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ACTION CARDS ── -->
+    <section class="section" id="section-actions">
+      <div class="page-header">
+        <h1>AI Action Cards</h1>
+        <p>Prioritized alerts from all agents — Red (act now), Amber (watch), Green (opportunity).</p>
+      </div>
+
+      <div class="flex-gap items-center mb-2">
+        <div style="flex:1; max-width:340px;">
+          <label>User ID</label>
+          <input type="text" id="act-uid" placeholder="backend_user_id" />
+        </div>
+        <div style="padding-top:1.5rem;">
+          <button class="btn btn-primary" onclick="fetchActions()">⚡ Get Actions</button>
+        </div>
+      </div>
+
+      <div class="grid-3 mb-2" id="action-summary-row" style="display:none;">
+        <div class="metric-card rose">
+          <div class="metric-label">🔴 Critical</div>
+          <div class="metric-value" id="act-red-count">0</div>
+          <div class="metric-sub">Immediate action required</div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">🟡 Warnings</div>
+          <div class="metric-value" id="act-amber-count">0</div>
+          <div class="metric-sub">Review these items</div>
+        </div>
+        <div class="metric-card emerald">
+          <div class="metric-label">🟢 Opportunities</div>
+          <div class="metric-value" id="act-green-count">0</div>
+          <div class="metric-sub">Available to capture</div>
+        </div>
+      </div>
+
+      <div id="actions-list">
+        <div class="empty-state"><div class="icon">⚡</div>Fetch actions to see AI-generated alerts</div>
+      </div>
+    </section>
+
+    <!-- ── GST ANALYZER ── -->
+    <section class="section" id="section-gst">
+      <div class="page-header">
+        <h1>GST Analyzer</h1>
+        <p>Classify individual transactions through the GST rules engine + Gemini AI fallback and see ITC eligibility instantly.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">🏛️</span> Single Transaction Classifier</div>
+          <label>Merchant / Party Name</label>
+          <input type="text" id="gst-party" placeholder="e.g. Amazon, Porter, Swiggy" />
+          <div class="mt-2">
+            <label>Transaction Amount (₹)</label>
+            <input type="number" id="gst-amount" placeholder="e.g. 5000" />
+          </div>
+          <div class="mt-2">
+            <label>Transaction Type</label>
+            <select id="gst-type">
+              <option value="debit">Debit (Business Expense)</option>
+              <option value="credit">Credit (Revenue)</option>
+            </select>
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-primary" onclick="classifyGST()">🔬 Classify via GST Agent</button>
+          </div>
+
+          <div class="mt-2">
+            <label>Quick Test Merchants</label>
+            <div class="sms-samples">
+              <div class="sms-chip" onclick="loadMerchant('Amazon','2000')">Amazon</div>
+              <div class="sms-chip" onclick="loadMerchant('Porter Logistics','1500')">Porter</div>
+              <div class="sms-chip" onclick="loadMerchant('Airtel','599')">Airtel</div>
+              <div class="sms-chip" onclick="loadMerchant('Swiggy','350')">Swiggy</div>
+              <div class="sms-chip" onclick="loadMerchant('Razorpay','10000')">Razorpay</div>
+              <div class="sms-chip" onclick="loadMerchant('AWS Cloud','3500')">AWS</div>
+              <div class="sms-chip" onclick="loadMerchant('HPCL Fuel','2000')">HPCL</div>
+              <div class="sms-chip" onclick="loadMerchant('SomeRandomVendor','800')">Unknown</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" id="gst-result-card" style="display:none;">
+            <div class="card-title"><span class="icon">✅</span> Classification Result</div>
+            <div id="gst-result-visual"></div>
+          </div>
+          <div class="response-panel" id="gst-response-panel">
+            <div class="response-toolbar">
+              <span><span class="method">LOCAL</span> &nbsp;GST Rules Engine + Gemini</span>
+              <span id="gst-status-badge"></span>
+            </div>
+            <div id="gst-response" class="response-placeholder">
+              ☝️ Enter a merchant and click Classify
+            </div>
+          </div>
+
+          <div class="card mt-2">
+            <div class="card-title"><span class="icon">📊</span> ITC Opportunities — GET /insights/{user_id}</div>
+            <div class="flex-gap items-center mb-1">
+              <input type="text" id="itc-uid" placeholder="backend_user_id" style="flex:1;" />
+              <button class="btn btn-ghost" onclick="fetchITC()">Analyze ITC</button>
+            </div>
+            <div id="itc-result"><div class="text-muted" style="font-size:0.8rem;">Enter user ID to scan all transactions for ITC opportunities.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── HEALTH ── -->
+    <section class="section" id="section-health">
+      <div class="page-header">
+        <h1>Health Check</h1>
+        <p>Verify FastAPI backend is running and all routes are accessible.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">❤️</span> GET /health</div>
+          <div class="text-muted mt-1 mb-2">Pings the backend health endpoint and measures response latency.</div>
+          <button class="btn btn-primary" onclick="checkHealth()">🏥 Ping Backend</button>
+        </div>
+
+        <div class="response-panel">
+          <div class="response-toolbar">
+            <span><span class="method">GET</span> &nbsp;/health</span>
+            <span id="health-status-badge"></span>
+          </div>
+          <div id="health-response" class="response-placeholder">
+            Click "Ping Backend" to test connectivity
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="card">
+        <div class="card-title"><span class="icon">🗺️</span> API Route Map</div>
+        <div class="table-wrap mt-1">
+          <table>
+            <thead>
+              <tr><th>Method</th><th>Route</th><th>Agent</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/health</td><td>—</td><td class="text-muted">Health check</td></tr>
+              <tr><td><span class="badge badge-debit">POST</span></td><td class="text-mono">/users/create</td><td>—</td><td class="text-muted">Register a new user</td></tr>
+              <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/users/{id}/profile</td><td>—</td><td class="text-muted">User transaction count</td></tr>
+              <tr><td><span class="badge badge-debit">POST</span></td><td class="text-mono">/ingest/sms</td><td>SMS Parser</td><td class="text-muted">Parse raw bank SMS</td></tr>
+              <tr><td><span class="badge badge-debit">POST</span></td><td class="text-mono">/ingest/pdf</td><td>PDF Parser</td><td class="text-muted">Extract bank statement PDF</td></tr>
+              <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/transactions/{id}</td><td>DB</td><td class="text-muted">Fetch all user transactions</td></tr>
+              <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/insights/{id}</td><td>Expense + Profit Agent</td><td class="text-muted">Financial summaries</td></tr>
+              <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/actions/{id}</td><td>All Agents + GST</td><td class="text-muted">Prioritized action cards</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  /* ───────────────────────────────────────────────
+      STATE
+  ─────────────────────────────────────────────── */
+  let API = 'http://localhost:8000';
+  let USER_ID = '';
+
+  const SMS_SAMPLES = [
+    "INB:Your A/c XX4521 debited Rs.349.00 on 17-Apr-26 to VPA swiggy@icici. Avl Bal:Rs.12,450.50 -HDFC Bank",
+    "Dear Customer, INB txn: Rs 2199.00 debited from A/c XX7831 to Amazon Seller on 17-Apr-26. Bal: Rs 8,201.00",
+    "INB Alert: Rs 15,000.00 CREDITED to A/c XX3892 from RAZORPAY PAYMENTS on 17-Apr-26. Bal: Rs 23,450.00",
+    "Acct XX5432: Rs.599.00 debited for AIRTEL RECHARGE on 17-Apr-26. Avl Bal Rs.5,832.10. -SBI Bank",
+    "Your a/c XX1234 debited Rs.850.00 on 17-Apr-26 for PORTER LOGISTICS. Bal: Rs 9,150.00",
+    "Salary Credited: Rs.45,000.00 credited to your account XX8891 on 17-Apr-26 from EMPLOYER. Bal Rs.48,200.00",
+    "EMI alert: Rs.8,500.00 auto-debited from A/c XX5512 for HDFC Bank EMI on 17-Apr-26. Avl Bal Rs.3,200.00",
+    "INB: AWS CLOUD SERVICES Rs.3,240.00 debited from A/c XX7743 on 17-Apr-26. Avl Bal Rs 14,560.00"
+  ];
+
+  /* ───────────────────────────────────────────────
+      NAVIGATION
+  ─────────────────────────────────────────────── */
+  function navigate(page) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    document.getElementById('section-' + page).classList.add('active');
+    document.getElementById('nav-' + page).classList.add('active');
+
+    // auto‑fill uid inputs
+    const uidInputs = ['sms-uid','pdf-uid','txn-uid','ins-uid','act-uid','itc-uid'];
+    uidInputs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.value && USER_ID) el.value = USER_ID;
+    });
+  }
+
+  /* ───────────────────────────────────────────────
+      CONFIG
+  ─────────────────────────────────────────────── */
+  function saveConfig() {
+    API = document.getElementById('cfg-api-url').value.replace(/\/$/, '');
+    USER_ID = document.getElementById('cfg-user-id').value.trim();
+    document.getElementById('api-url-display').textContent = API;
+    document.getElementById('m-uid').textContent = USER_ID || 'None';
+    showToast('Config saved — testing connection…', 'success');
+    checkHealthSilent();
+  }
+
+  /* ───────────────────────────────────────────────
+      HEALTH
+  ─────────────────────────────────────────────── */
+  async function checkHealthSilent() {
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    const ms_el = document.getElementById('m-latency');
+    const m_status = document.getElementById('m-status');
+    try {
+      const t0 = Date.now();
+      const r = await fetch(API + '/health');
+      const ms = Date.now() - t0;
+      if (r.ok) {
+        dot.className = 'dot online';
+        txt.textContent = 'Online';
+        if (ms_el) ms_el.textContent = ms + 'ms';
+        if (m_status) m_status.textContent = '✅ OK';
+      } else {
+        throw new Error(r.status);
+      }
+    } catch {
+      dot.className = 'dot offline';
+      txt.textContent = 'Offline';
+      if (ms_el) ms_el.textContent = '—';
+      if (m_status) m_status.textContent = '❌ Down';
+    }
+  }
+
+  async function checkHealth() {
+    const panel = document.getElementById('health-response');
+    const badge = document.getElementById('health-status-badge');
+    panel.className = 'response-body';
+    panel.textContent = 'Pinging…';
+    badge.innerHTML = '';
+    try {
+      const t0 = Date.now();
+      const r = await fetch(API + '/health');
+      const ms = Date.now() - t0;
+      const data = await r.json();
+      badge.innerHTML = `<span class="status-code status-200">${r.status}</span>`;
+      panel.textContent = JSON.stringify(data, null, 2) + '\n\n// Response time: ' + ms + 'ms';
+      showToast('Backend is healthy ✅', 'success');
+      document.getElementById('status-dot').className = 'dot online';
+      document.getElementById('status-text').textContent = 'Online';
+    } catch (e) {
+      badge.innerHTML = `<span class="status-code status-5xx">Error</span>`;
+      panel.textContent = 'Connection failed: ' + e.message + '\n\nMake sure the FastAPI server is running:\n  cd pocket-cfo-parser\n  uvicorn api.main:app --reload';
+      showToast('Connection failed ❌', 'error');
+      document.getElementById('status-dot').className = 'dot offline';
+      document.getElementById('status-text').textContent = 'Offline';
+    }
+  }
+
+  /* ───────────────────────────────────────────────
+      CREATE USER
+  ─────────────────────────────────────────────── */
+  async function createUser() {
+    const btn = document.getElementById('btn-create-user');
+    const panel = document.getElementById('user-response');
+    const badge = document.getElementById('user-status-badge');
+    const payload = {
+      name: document.getElementById('u-name').value.trim(),
+      phone: document.getElementById('u-phone').value.trim(),
+      business_name: document.getElementById('u-biz').value.trim()
+    };
+    if (!payload.name || !payload.phone || !payload.business_name) {
+      showToast('Fill all fields first', 'error'); return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating…';
+    panel.className = 'response-body';
+    panel.textContent = 'Sending request…';
+    badge.innerHTML = '';
+    try {
+      const r = await fetch(API + '/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await r.json();
+      badge.innerHTML = `<span class="status-code status-200">${r.status}</span>`;
+      panel.textContent = JSON.stringify(data, null, 2);
+      if (data.backend_user_id) {
+        document.getElementById('uid-copy-card').style.display = 'block';
+        document.getElementById('created-uid').value = data.backend_user_id;
+        showToast('User created successfully!', 'success');
+      }
+    } catch (e) {
+      badge.innerHTML = `<span class="status-code status-5xx">Error</span>`;
+      panel.textContent = 'Error: ' + e.message;
+      showToast('Request failed', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Create User';
+    }
+  }
+
+  function fillDemoUser() {
+    document.getElementById('u-name').value = 'Rajesh Kumar';
+    document.getElementById('u-phone').value = '+919876543210';
+    document.getElementById('u-biz').value = 'Kumar Electronics';
+  }
+
+  function copyUID() {
+    const el = document.getElementById('created-uid');
+    el.select();
+    document.execCommand('copy');
+    showToast('User ID copied!', 'success');
+  }
+
+  function useUID() {
+    const uid = document.getElementById('created-uid').value;
+    USER_ID = uid;
+    document.getElementById('cfg-user-id').value = uid;
+    document.getElementById('m-uid').textContent = uid;
+    showToast('User ID set as active session', 'success');
+  }
+
+  /* ───────────────────────────────────────────────
+      SMS INGEST
+  ─────────────────────────────────────────────── */
+  function loadSMS(idx) {
+    document.getElementById('sms-text').value = SMS_SAMPLES[idx];
+    if (!document.getElementById('sms-uid').value && USER_ID)
+      document.getElementById('sms-uid').value = USER_ID;
+  }
+
+  function clearSMS() {
+    document.getElementById('sms-text').value = '';
+    document.getElementById('sms-response').className = 'response-placeholder';
+    document.getElementById('sms-response').textContent = '☝️ Paste an SMS and hit Parse';
+    document.getElementById('sms-parsed-card').style.display = 'none';
+    document.getElementById('sms-status-badge').innerHTML = '';
+  }
+
+  async function ingestSMS() {
+    const btn = document.getElementById('btn-sms');
+    const panel = document.getElementById('sms-response');
+    const badge = document.getElementById('sms-status-badge');
+    const uid = document.getElementById('sms-uid').value.trim();
+    const text = document.getElementById('sms-text').value.trim();
+    if (!uid || !text) { showToast('Enter User ID and SMS text', 'error'); return; }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Parsing…';
+    panel.className = 'response-body';
+    panel.textContent = 'Sending to agent…';
+    badge.innerHTML = '';
+    document.getElementById('sms-parsed-card').style.display = 'none';
+    try {
+      const r = await fetch(API + '/ingest/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: uid, text })
+      });
+      const data = await r.json();
+      badge.innerHTML = `<span class="status-code status-200">${r.status}</span>`;
+      panel.textContent = JSON.stringify(data, null, 2);
+      if (data.amount !== undefined) {
+        renderParsedTransaction(data);
+        showToast('SMS parsed successfully!', 'success');
+      } else if (data.status === 'skipped') {
+        showToast('Non-transactional SMS — skipped', 'error');
+      }
+    } catch (e) {
+      badge.innerHTML = `<span class="status-code status-5xx">Error</span>`;
+      panel.textContent = 'Error: ' + e.message;
+      showToast('Request failed', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Parse SMS';
+    }
+  }
+
+  function renderParsedTransaction(t) {
+    const card = document.getElementById('sms-parsed-card');
+    const vis = document.getElementById('sms-parsed-visual');
+    const conf = Math.round((t.confidence || 0) * 100);
+    const confColor = conf >= 80 ? 'var(--emerald)' : conf >= 50 ? 'var(--amber)' : 'var(--rose)';
+    vis.innerHTML = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">Party</div>
+          <div style="font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; margin-top:2px;">${t.party || '—'}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">Amount</div>
+          <div style="font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; color:${t.type==='credit'?'var(--emerald)':'var(--rose)'}; margin-top:2px;">
+            ${t.type==='credit'?'+':'-'}₹${(t.amount||0).toLocaleString('en-IN')}
+          </div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">Category</div>
+          <div style="margin-top:2px;">${t.category || '—'}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">Date</div>
+          <div style="font-family:'DM Mono',monospace; font-size:0.85rem; margin-top:2px;">${t.date || '—'}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">Source</div>
+          <div style="margin-top:2px;">${t.source || 'sms'}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">Confidence</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+            <div class="conf-bar" style="width:80px;"><div class="conf-fill" style="width:${conf}%; background:${confColor};"></div></div>
+            <span style="font-size:0.8rem; color:${confColor}; font-weight:600;">${conf}%</span>
+          </div>
+        </div>
+      </div>`;
+    card.style.display = 'block';
+  }
+
+  /* ───────────────────────────────────────────────
+      PDF INGEST
+  ─────────────────────────────────────────────── */
+  async function ingestPDF() {
+    const btn = document.getElementById('btn-pdf');
+    const panel = document.getElementById('pdf-response');
+    const badge = document.getElementById('pdf-status-badge');
+    const uid = document.getElementById('pdf-uid').value.trim();
+    const file = document.getElementById('pdf-file').files[0];
+    if (!uid || !file) { showToast('Select a file and enter User ID', 'error'); return; }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Uploading…';
+    panel.className = 'response-body';
+    panel.textContent = 'Uploading and parsing…';
+    badge.innerHTML = '';
+    try {
+      const form = new FormData();
+      form.append('user_id', uid);
+      form.append('file', file);
+      const r = await fetch(API + '/ingest/pdf', { method: 'POST', body: form });
+      const data = await r.json();
+      badge.innerHTML = `<span class="status-code status-200">${r.status}</span>`;
+      panel.textContent = JSON.stringify(data, null, 2);
+      showToast(`Extracted ${data.count || 0} transactions!`, 'success');
+    } catch (e) {
+      badge.innerHTML = `<span class="status-code status-5xx">Error</span>`;
+      panel.textContent = 'Error: ' + e.message;
+      showToast('Upload failed', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '📤 Upload & Parse';
+    }
+  }
+
+  /* ───────────────────────────────────────────────
+      TRANSACTIONS
+  ─────────────────────────────────────────────── */
+  let allTxns = [];
+
+  async function fetchTransactions() {
+    const uid = document.getElementById('txn-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    document.getElementById('txn-tbody').innerHTML = `<tr><td colspan="7"><div class="empty-state">⏳ Fetching transactions…</div></td></tr>`;
+    try {
+      const r = await fetch(API + '/transactions/' + uid);
+      const data = await r.json();
+      allTxns = data.transactions || [];
+      renderTxnMetrics(allTxns);
+      filterTable();
+      showToast(`Loaded ${allTxns.length} transactions`, 'success');
+    } catch (e) {
+      document.getElementById('txn-tbody').innerHTML = `<tr><td colspan="7"><div class="empty-state">❌ ${e.message}</div></td></tr>`;
+      showToast('Failed to fetch', 'error');
+    }
+  }
+
+  function renderTxnMetrics(txns) {
+    const credits = txns.filter(t => t.type === 'credit');
+    const debits = txns.filter(t => t.type === 'debit');
+    const totalCredit = credits.reduce((s, t) => s + (t.amount || 0), 0);
+    const totalDebit = debits.reduce((s, t) => s + (t.amount || 0), 0);
+    const el = document.getElementById('txn-metrics');
+    el.style.display = 'grid';
+    el.innerHTML = `
+      <div class="metric-card emerald"><div class="metric-label">Total Credits</div><div class="metric-value">₹${totalCredit.toLocaleString('en-IN', {maximumFractionDigits:0})}</div><div class="metric-sub">${credits.length} transactions</div></div>
+      <div class="metric-card rose"><div class="metric-label">Total Debits</div><div class="metric-value">₹${totalDebit.toLocaleString('en-IN', {maximumFractionDigits:0})}</div><div class="metric-sub">${debits.length} transactions</div></div>
+      <div class="metric-card amber"><div class="metric-label">Net Flow</div><div class="metric-value" style="color:${(totalCredit-totalDebit)>=0?'var(--emerald)':'var(--rose)'}">₹${Math.abs(totalCredit-totalDebit).toLocaleString('en-IN', {maximumFractionDigits:0})}</div><div class="metric-sub">${(totalCredit-totalDebit)>=0?'Positive':'Negative'}</div></div>
+      <div class="metric-card indigo"><div class="metric-label">Total Entries</div><div class="metric-value">${txns.length}</div><div class="metric-sub">In the ledger</div></div>`;
+  }
+
+  function filterTable() {
+    const filter = document.getElementById('txn-filter').value;
+    const search = (document.getElementById('txn-search').value || '').toLowerCase();
+    const filtered = allTxns.filter(t => {
+      const typeMatch = filter === 'all' || t.type === filter;
+      const searchMatch = !search || (t.party || '').toLowerCase().includes(search);
+      return typeMatch && searchMatch;
+    });
+    renderTxnTable(filtered);
+  }
+
+  function renderTxnTable(txns) {
+    const tbody = document.getElementById('txn-tbody');
+    if (!txns.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">📭</div>No transactions match your filter</div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = txns.map(t => {
+      const conf = Math.round((t.confidence || 0) * 100);
+      const confColor = conf >= 80 ? 'var(--emerald)' : conf >= 50 ? 'var(--amber)' : 'var(--rose)';
+      const confBadge = conf >= 70 ? 'high' : conf >= 40 ? 'med' : 'low';
+      return `<tr>
+        <td class="text-mono">${t.date || '—'}</td>
+        <td style="font-weight:500;">${t.party || 'Unknown'}</td>
+        <td style="font-family:'DM Mono',monospace; color:${t.type==='credit'?'var(--emerald)':'var(--rose)'};">
+          ${t.type==='credit'?'+':'-'}₹${(t.amount||0).toLocaleString('en-IN')}
+        </td>
+        <td><span class="badge badge-${t.type}">${t.type}</span></td>
+        <td>${t.category || 'Uncategorized'}</td>
+        <td class="text-muted">${t.source || '—'}</td>
+        <td>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <div class="conf-bar"><div class="conf-fill" style="width:${conf}%; background:${confColor};"></div></div>
+            <span class="badge badge-${confBadge}" style="font-size:0.65rem;">${conf}%</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ───────────────────────────────────────────────
+      INSIGHTS
+  ─────────────────────────────────────────────── */
+  async function fetchInsights() {
+    const uid = document.getElementById('ins-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    document.getElementById('insights-grid').style.display = 'none';
+    try {
+      const r = await fetch(API + '/insights/' + uid);
+      const data = await r.json();
+      renderExpenseSummary(data.expense_summary || {});
+      renderProfitSummary(data.profit_summary || {});
+      document.getElementById('insights-raw').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('insights-grid').style.display = 'grid';
+      showToast('Insights loaded from agents', 'success');
+    } catch (e) {
+      showToast('Failed: ' + e.message, 'error');
+    }
+  }
+
+  function renderExpenseSummary(exp) {
+    const el = document.getElementById('expense-content');
+    if (!exp || !Object.keys(exp).length) { el.innerHTML = '<div class="empty-state">No expense data yet</div>'; return; }
+    const cats = exp.by_category || {};
+    const total = exp.total_expenses || 0;
+    const catRows = Object.entries(cats).map(([k, v]) => {
+      const pct = total > 0 ? Math.round((v / total) * 100) : 0;
+      return `<div class="insight-row">
+        <div>${k}</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%; background:var(--amber);"></div></div>
+          <span class="text-mono" style="color:var(--amber);">₹${v.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+        </div>
+      </div>`;
+    }).join('');
+    el.innerHTML = `
+      <div class="insight-row">
+        <b>Total Expenses</b>
+        <b style="color:var(--rose);">₹${total.toLocaleString('en-IN', {maximumFractionDigits:0})}</b>
+      </div>
+      ${catRows}
+      <div class="insight-row" style="margin-top:8px;">
+        <span class="text-muted">Anomalies flagged</span>
+        <span>${(exp.anomalies || []).length}</span>
+      </div>`;
+  }
+
+  function renderProfitSummary(pro) {
+    const el = document.getElementById('profit-content');
+    if (!pro || !Object.keys(pro).length) { el.innerHTML = '<div class="empty-state">No profit data yet</div>'; return; }
+    const netColor = (pro.net_profit || 0) >= 0 ? 'var(--emerald)' : 'var(--rose)';
+    el.innerHTML = `
+      <div class="insight-row"><b>Total Revenue</b><b style="color:var(--emerald);">₹${(pro.total_revenue||0).toLocaleString('en-IN',{maximumFractionDigits:0})}</b></div>
+      <div class="insight-row"><span>Total Expenses</span><span style="color:var(--rose);">₹${(pro.total_expenses||0).toLocaleString('en-IN',{maximumFractionDigits:0})}</span></div>
+      <div class="insight-row">
+        <b>Net Profit</b>
+        <b style="color:${netColor}; font-size:1.1rem; font-family:'Syne',sans-serif;">
+          ${(pro.net_profit||0)>=0?'▲':'▼'} ₹${Math.abs(pro.net_profit||0).toLocaleString('en-IN',{maximumFractionDigits:0})}
+        </b>
+      </div>
+      <div class="insight-row"><span>Profit Margin</span><span style="color:${netColor};">${(pro.profit_margin||0).toFixed(1)}%</span></div>
+      <div class="insight-row"><span class="text-muted">Summary</span></div>
+      <div style="font-size:0.82rem; color:var(--muted); margin-top:4px; line-height:1.5;">${pro.summary || '—'}</div>`;
+  }
+
+  /* ───────────────────────────────────────────────
+      ACTIONS
+  ─────────────────────────────────────────────── */
+  async function fetchActions() {
+    const uid = document.getElementById('act-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    document.getElementById('actions-list').innerHTML = '<div class="empty-state">⏳ Running all agents…</div>';
+    try {
+      const r = await fetch(API + '/actions/' + uid);
+      const data = await r.json();
+      const actions = data.actions || [];
+      const red = actions.filter(a => a.priority === 'red');
+      const amber = actions.filter(a => a.priority === 'amber');
+      const green = actions.filter(a => a.priority === 'green');
+      document.getElementById('act-red-count').textContent = red.length;
+      document.getElementById('act-amber-count').textContent = amber.length;
+      document.getElementById('act-green-count').textContent = green.length;
+      document.getElementById('action-summary-row').style.display = 'grid';
+
+      if (!actions.length) {
+        document.getElementById('actions-list').innerHTML = '<div class="empty-state"><div class="icon">🎉</div>No alerts — everything looks good!</div>';
+        return;
+      }
+      const sorted = [...red, ...amber, ...green];
+      document.getElementById('actions-list').innerHTML = sorted.map(a => `
+        <div class="action-card ${a.priority}">
+          <div class="action-priority">${a.priority === 'red' ? '🔴 CRITICAL' : a.priority === 'amber' ? '🟡 WARNING' : '🟢 OPPORTUNITY'}</div>
+          <div class="action-title">${a.title}</div>
+          <div class="action-msg">${a.message}</div>
+          ${a.amount != null ? `<div class="action-amount">₹${Number(a.amount).toLocaleString('en-IN', {maximumFractionDigits:2})}</div>` : ''}
+        </div>`).join('');
+      showToast(`${actions.length} action cards generated`, 'success');
+    } catch (e) {
+      document.getElementById('actions-list').innerHTML = `<div class="empty-state">❌ ${e.message}</div>`;
+      showToast('Failed: ' + e.message, 'error');
+    }
+  }
+
+  /* ───────────────────────────────────────────────
+      GST CLASSIFIER
+  ─────────────────────────────────────────────── */
+  function loadMerchant(party, amount) {
+    document.getElementById('gst-party').value = party;
+    document.getElementById('gst-amount').value = amount;
+  }
+
+  async function classifyGST() {
+    const party = document.getElementById('gst-party').value.trim();
+    const amount = parseFloat(document.getElementById('gst-amount').value) || 1000;
+    const type = document.getElementById('gst-type').value;
+    if (!party) { showToast('Enter a merchant name', 'error'); return; }
+
+    const panel = document.getElementById('gst-response');
+    const badge = document.getElementById('gst-status-badge');
+    panel.className = 'response-body';
+    panel.textContent = 'Sending single transaction to /ingest/sms for GST classification preview…';
+    badge.innerHTML = '';
+    document.getElementById('gst-result-card').style.display = 'none';
+
+    // We test via the GST agent logic by ingesting a synthetic SMS
+    const syntheticSMS = `Dear Customer, A/c XX1234 ${type==='debit'?'debited':'credited'} Rs.${amount} on 17-Apr-26 to/from ${party}. Avl Bal Rs.10000`;
+    const uid = USER_ID || 'test-gst-user';
+
+    try {
+      const r = await fetch(API + '/ingest/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: uid, text: syntheticSMS })
+      });
+      const data = await r.json();
+      badge.innerHTML = `<span class="status-code status-200">${r.status}</span>`;
+      panel.textContent = JSON.stringify(data, null, 2);
+
+      // Display a local GST classification result based on known rules
+      renderGSTResult(party, amount, type);
+      showToast('GST classification complete', 'success');
+    } catch (e) {
+      badge.innerHTML = `<span class="status-code status-5xx">Error</span>`;
+      panel.textContent = 'Error: ' + e.message + '\n\nShowing local rule-based classification below:';
+      renderGSTResult(party, amount, type);
+      showToast('API error — showing local classification', 'error');
+    }
+  }
+
+  const GST_RULES_CLIENT = {
+    swiggy: { gst_rate: 5, hsn_sac: '9963', itc_eligible: false, category: 'Food & Beverage' },
+    zomato: { gst_rate: 5, hsn_sac: '9963', itc_eligible: false, category: 'Food & Beverage' },
+    amazon: { gst_rate: 18, hsn_sac: '9961', itc_eligible: true, category: 'Retail & E-commerce' },
+    flipkart: { gst_rate: 18, hsn_sac: '9961', itc_eligible: true, category: 'Retail & E-commerce' },
+    porter: { gst_rate: 18, hsn_sac: '9967', itc_eligible: true, category: 'Logistics' },
+    delhivery: { gst_rate: 18, hsn_sac: '9967', itc_eligible: true, category: 'Logistics' },
+    airtel: { gst_rate: 18, hsn_sac: '9984', itc_eligible: true, category: 'Telecommunications' },
+    jio: { gst_rate: 18, hsn_sac: '9984', itc_eligible: true, category: 'Telecommunications' },
+    uber: { gst_rate: 5, hsn_sac: '9964', itc_eligible: false, category: 'Transport' },
+    ola: { gst_rate: 5, hsn_sac: '9964', itc_eligible: false, category: 'Transport' },
+    razorpay: { gst_rate: 18, hsn_sac: '9971', itc_eligible: true, category: 'Payments & Fintech' },
+    paytm: { gst_rate: 18, hsn_sac: '9971', itc_eligible: true, category: 'Payments & Fintech' },
+    aws: { gst_rate: 18, hsn_sac: '9984', itc_eligible: true, category: 'Telecom & Cloud' },
+    google: { gst_rate: 18, hsn_sac: '9984', itc_eligible: true, category: 'Telecom & Cloud' },
+    microsoft: { gst_rate: 18, hsn_sac: '9984', itc_eligible: true, category: 'Telecom & Cloud' },
+    hpcl: { gst_rate: 0, hsn_sac: 'EXEMPT', itc_eligible: false, category: 'Fuel' },
+    bpcl: { gst_rate: 0, hsn_sac: 'EXEMPT', itc_eligible: false, category: 'Fuel' },
+    petrol: { gst_rate: 0, hsn_sac: 'EXEMPT', itc_eligible: false, category: 'Fuel' },
+    salary: { gst_rate: 0, hsn_sac: 'EXEMPT', itc_eligible: false, category: 'Payroll' },
+    rent: { gst_rate: 18, hsn_sac: '9972', itc_eligible: true, category: 'Rent & Real Estate' },
+  };
+
+  function renderGSTResult(party, amount, type) {
+    const partyLower = party.toLowerCase();
+    let rule = null;
+    for (const [key, val] of Object.entries(GST_RULES_CLIENT)) {
+      if (partyLower.includes(key)) { rule = { ...val, matched_rule: key, confidence: 0.9 }; break; }
+    }
+    if (!rule) rule = { gst_rate: 18, hsn_sac: 'UNKNOWN', itc_eligible: false, category: 'Uncategorized', matched_rule: 'gemini-fallback', confidence: 0.7 };
+
+    const gst_amount = (amount * rule.gst_rate / (100 + rule.gst_rate)).toFixed(2);
+    const itc_amount = rule.itc_eligible ? gst_amount : '0.00';
+    const source = rule.matched_rule === 'gemini-fallback' ? '🤖 Gemini AI Fallback' : '📖 Deterministic Rules Engine';
+
+    document.getElementById('gst-result-visual').innerHTML = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">Category</div>
+          <div style="font-weight:600; margin-top:2px;">${rule.category}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">HSN/SAC Code</div>
+          <div style="font-family:'DM Mono',monospace; font-size:0.9rem; margin-top:2px; color:var(--sky);">${rule.hsn_sac}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">GST Rate</div>
+          <div style="font-size:1.2rem; font-family:'Syne',sans-serif; font-weight:700; color:var(--amber); margin-top:2px;">${rule.gst_rate}%</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">ITC Eligibility</div>
+          <div style="margin-top:4px;">
+            <span class="gst-chip ${rule.itc_eligible?'itc-yes':'itc-no'}">${rule.itc_eligible?'✅ ITC Claimable':'❌ Not Eligible'}</span>
+          </div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">GST Amount (back-calc)</div>
+          <div style="font-family:'DM Mono',monospace; color:var(--amber); margin-top:2px;">₹${Number(gst_amount).toLocaleString('en-IN')}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">ITC Amount</div>
+          <div style="font-family:'DM Mono',monospace; color:${rule.itc_eligible?'var(--emerald)':'var(--muted)'}; margin-top:2px;">₹${Number(itc_amount).toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; padding:0.6rem 0.75rem; background:var(--bg3); border-radius:8px; border:1px solid var(--border);">
+        <span style="font-size:0.75rem; color:var(--muted);">Classified by:</span>
+        <span style="font-size:0.8rem; font-weight:600;">${source}</span>
+        <span style="margin-left:auto; font-size:0.75rem; color:var(--muted);">Confidence: <b style="color:var(--text);">${Math.round(rule.confidence*100)}%</b></span>
+      </div>`;
+    document.getElementById('gst-result-card').style.display = 'block';
+  }
+
+  async function fetchITC() {
+    const uid = document.getElementById('itc-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    const el = document.getElementById('itc-result');
+    el.innerHTML = '<div class="text-muted">⏳ Analyzing ITC opportunities…</div>';
+    try {
+      const r = await fetch(API + '/insights/' + uid);
+      const data = await r.json();
+      const ins = data.expense_summary || {};
+      // pull from actions for ITC data
+      const r2 = await fetch(API + '/actions/' + uid);
+      const d2 = await r2.json();
+      const itcAction = (d2.actions || []).find(a => a.title === 'Input Tax Credit Available');
+      el.innerHTML = itcAction
+        ? `<div class="action-card green"><div class="action-priority">🟢 ITC OPPORTUNITY</div><div class="action-title">${itcAction.title}</div><div class="action-msg">${itcAction.message}</div><div class="action-amount">₹${Number(itcAction.amount||0).toLocaleString('en-IN', {maximumFractionDigits:2})}</div></div>`
+        : `<div class="text-muted" style="font-size:0.82rem; margin-top:8px;">No ITC opportunities found yet. Ingest more transactions first.</div>`;
+      showToast('ITC analysis complete', 'success');
+    } catch (e) {
+      el.innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
+      showToast('Failed', 'error');
+    }
+  }
+
+  /* ───────────────────────────────────────────────
+      TOAST
+  ─────────────────────────────────────────────── */
+  let toastTimer;
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = ''; }, 3000);
+  }
+
+  /* ───────────────────────────────────────────────
+      INIT
+  ─────────────────────────────────────────────── */
+  window.addEventListener('DOMContentLoaded', () => {
+    checkHealthSilent();
+    setInterval(checkHealthSilent, 15000);
+  });
+</script>
+</body>
+</html>
