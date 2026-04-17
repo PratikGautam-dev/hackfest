@@ -824,7 +824,7 @@
 <!-- HEADER -->
 <header>
   <div class="logo">
-    <div class="logo-icon">💰</div>
+    <div class="logo-icon"></div>
     Pocket <span>CFO</span>&nbsp;Agent
   </div>
   <div class="api-status">
@@ -840,68 +840,65 @@
   <nav>
     <div class="nav-section">Setup</div>
     <a class="active" onclick="navigate('setup')" id="nav-setup">
-      <span class="nav-icon">⚙️</span> Configuration
+      <span class="nav-icon"></span> Configuration
     </a>
     <a onclick="navigate('users')" id="nav-users">
-      <span class="nav-icon">👤</span> Create User
+      <span class="nav-icon"></span> Create User
     </a>
 
     <div class="nav-section">Ingestion</div>
-    <a onclick="navigate('sms')" id="nav-sms">
-      <span class="nav-icon">📱</span> SMS Ingest
-      <span class="badge">POST</span>
-    </a>
+    
     <a onclick="navigate('pdf')" id="nav-pdf">
-      <span class="nav-icon">📄</span> PDF Ingest
+      <span class="nav-icon"></span> PDF Ingest
       <span class="badge">POST</span>
     </a>
 
     <div class="nav-section">Intelligence</div>
     <a onclick="navigate('transactions')" id="nav-transactions">
-      <span class="nav-icon">📊</span> Transactions
+      <span class="nav-icon"></span> Transactions
     </a>
     <a onclick="navigate('insights')" id="nav-insights">
-      <span class="nav-icon">🔍</span> Insights
+      <span class="nav-icon"></span> Insights
     </a>
     <a onclick="navigate('actions')" id="nav-actions">
-      <span class="nav-icon">⚡</span> Action Cards
+      <span class="nav-icon"></span> Action Cards
     </a>
 
     <div class="nav-section">Agents</div>
     <a onclick="navigate('expense-agent')" id="nav-expense-agent">
-      <span class="nav-icon">💸</span> Expense Agent
+      <span class="nav-icon"></span> Expense Agent
       <span class="badge">GET</span>
     </a>
     <a onclick="navigate('profit-agent')" id="nav-profit-agent">
-      <span class="nav-icon">📈</span> Profit Agent
+      <span class="nav-icon"></span> Profit Agent
       <span class="badge">GET</span>
     </a>
     <a onclick="navigate('bookkeeping-agent')" id="nav-bookkeeping-agent">
-      <span class="nav-icon">📚</span> Bookkeeping Agent
+      <span class="nav-icon"></span> Bookkeeping Agent
       <span class="badge">GET</span>
     </a>
     <a onclick="navigate('financial-statements-agent')" id="nav-financial-statements-agent">
-      <span class="nav-icon">📊</span> Financial Statements
+      <span class="nav-icon"></span> Financial Statements
       <span class="badge">GET</span>
     </a>
     <a onclick="navigate('income-tax-agent')" id="nav-income-tax-agent">
-      <span class="nav-icon">💰</span> Income Tax Agent
+      <span class="nav-icon"></span> Income Tax Agent
       <span class="badge">GET</span>
     </a>
     <a onclick="navigate('reconciliation-agent')" id="nav-reconciliation-agent">
-      <span class="nav-icon">🔍</span> Reconciliation Agent
+      <span class="nav-icon"></span> Reconciliation Agent
       <span class="badge">GET</span>
     </a>
     <a onclick="navigate('audit-agent')" id="nav-audit-agent">
-      <span class="nav-icon">🕵️</span> Audit Agent
+      <span class="nav-icon"></span> Audit Agent
       <span class="badge">GET</span>
     </a>
     <a onclick="navigate('gst')" id="nav-gst">
-      <span class="nav-icon">🏛️</span> GST Agent
+      <span class="nav-icon"></span> GST Agent
       <span class="badge">GET</span>
     </a>
     <a onclick="navigate('health')" id="nav-health">
-      <span class="nav-icon">❤️</span> Health Check
+      <span class="nav-icon"></span> Health Check
     </a>
   </nav>
 
@@ -917,7 +914,7 @@
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-title"><span class="icon">🔌</span> Backend Connection</div>
+          <div class="card-title"><span class="icon"></span> Backend Connection</div>
           <label>API Base URL</label>
           <input type="text" id="cfg-api-url" value="http://localhost:8000" placeholder="http://localhost:8000" />
           <div class="mt-2">
@@ -925,13 +922,13 @@
             <input type="text" id="cfg-user-id" value="" placeholder="Paste your backend_user_id here" />
           </div>
           <div class="flex-gap mt-2">
-            <button class="btn btn-primary" onclick="saveConfig()">💾 Save & Test Connection</button>
-            <button class="btn btn-ghost" onclick="navigate('health')">🏥 Health Check</button>
+            <button class="btn btn-primary" onclick="saveConfig()"> Save & Test Connection</button>
+            <button class="btn btn-ghost" onclick="navigate('health')"> Health Check</button>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title"><span class="icon">📋</span> Quick Start Guide</div>
+          <div class="card-title"><span class="icon"></span> Quick Start Guide</div>
           <div style="display:flex; flex-direction:column; gap:10px;">
             <div style="display:flex; gap:10px; align-items:flex-start;">
               <div style="min-width:24px; height:24px; border-radius:50%; background:var(--amber); color:#000; display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">1</div>
@@ -988,20 +985,32 @@
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-title"><span class="icon">👤</span> POST /users/create</div>
+          <div class="card-title"><span class="icon"></span> POST /users/create</div>
           <label>Full Name</label>
           <input type="text" id="u-name" placeholder="e.g. Rajesh Kumar" />
           <div class="mt-2">
             <label>Phone Number</label>
             <input type="text" id="u-phone" placeholder="+919876543210" />
           </div>
-          <div class="mt-2">
+                    <div class="mt-2">
             <label>Business Name</label>
             <input type="text" id="u-biz" placeholder="e.g. Kumar Electronics" />
           </div>
+          <div class="mt-2">
+            <label>Industry</label>
+            <input type="text" id="u-industry" placeholder="e.g. Retail" />
+          </div>
+          <div class="mt-2">
+            <label>Entity Type</label>
+            <input type="text" id="u-entity" placeholder="e.g. Sole Proprietorship" />
+          </div>
+          <div class="mt-2">
+            <label>Annual Turnover</label>
+            <input type="number" id="u-turnover" placeholder="e.g. 4500000" />
+          </div>
           <div class="flex-gap mt-2">
-            <button class="btn btn-primary" id="btn-create-user" onclick="createUser()">🚀 Create User</button>
-            <button class="btn btn-ghost" onclick="fillDemoUser()">🎲 Fill Demo Data</button>
+            <button class="btn btn-primary" id="btn-create-user" onclick="createUser()"> Create User</button>
+            <button class="btn btn-ghost" onclick="fillDemoUser()"> Fill Demo Data</button>
           </div>
         </div>
 
@@ -1012,75 +1021,18 @@
               <span id="user-status-badge"></span>
             </div>
             <div id="user-response" class="response-placeholder">
-              ☝️ Submit the form to see the response
+               Submit the form to see the response
             </div>
           </div>
 
           <div class="card mt-2" id="uid-copy-card" style="display:none;">
-            <div class="card-title" style="color:var(--emerald);">✅ User Created!</div>
+            <div class="card-title" style="color:var(--emerald);"> User Created!</div>
             <div class="text-muted mb-1">backend_user_id — copy this into Configuration</div>
             <div style="display:flex; gap:8px; align-items:center;">
               <input type="text" id="created-uid" readonly style="color:var(--amber); font-family:'DM Mono',monospace;" />
-              <button class="btn btn-ghost" onclick="copyUID()" style="white-space:nowrap;">📋 Copy</button>
+              <button class="btn btn-ghost" onclick="copyUID()" style="white-space:nowrap;"> Copy</button>
               <button class="btn btn-primary" onclick="useUID()" style="white-space:nowrap;">Use It</button>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── SMS INGEST ── -->
-    <section class="section" id="section-sms">
-      <div class="page-header">
-        <h1>SMS Ingest Agent</h1>
-        <p>Feed raw bank SMS messages to the parser agent and watch it extract structured transactions.</p>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title"><span class="icon">📱</span> POST /ingest/sms</div>
-          <label>User ID</label>
-          <input type="text" id="sms-uid" placeholder="backend_user_id" />
-
-          <div class="mt-2">
-            <label>Raw SMS Text</label>
-            <textarea id="sms-text" rows="5" placeholder="Paste bank SMS here…"></textarea>
-          </div>
-
-          <div class="mt-2">
-            <label>Sample SMS Messages</label>
-            <div class="sms-samples">
-              <div class="sms-chip" onclick="loadSMS(0)">✅ Swiggy ₹349</div>
-              <div class="sms-chip" onclick="loadSMS(1)">✅ Amazon ₹2,199</div>
-              <div class="sms-chip" onclick="loadSMS(2)">✅ Razorpay ₹15,000 Credit</div>
-              <div class="sms-chip" onclick="loadSMS(3)">✅ Airtel ₹599</div>
-              <div class="sms-chip" onclick="loadSMS(4)">✅ Porter ₹850</div>
-              <div class="sms-chip" onclick="loadSMS(5)">✅ Salary Credit ₹45,000</div>
-              <div class="sms-chip" onclick="loadSMS(6)">✅ HDFC EMI ₹8,500</div>
-              <div class="sms-chip" onclick="loadSMS(7)">✅ AWS ₹3,240</div>
-            </div>
-          </div>
-
-          <div class="flex-gap mt-2">
-            <button class="btn btn-primary" id="btn-sms" onclick="ingestSMS()">⚡ Parse SMS</button>
-            <button class="btn btn-ghost" onclick="clearSMS()">🗑️ Clear</button>
-          </div>
-        </div>
-
-        <div>
-          <div class="response-panel">
-            <div class="response-toolbar">
-              <span><span class="method">POST</span> &nbsp;/ingest/sms</span>
-              <span id="sms-status-badge"></span>
-            </div>
-            <div id="sms-response" class="response-placeholder">
-              ☝️ Paste an SMS and hit Parse
-            </div>
-          </div>
-
-          <div class="card mt-2" id="sms-parsed-card" style="display:none;">
-            <div class="card-title"><span class="icon">🧠</span> Parsed Transaction</div>
-            <div id="sms-parsed-visual"></div>
           </div>
         </div>
       </div>
@@ -1095,7 +1047,7 @@
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-title"><span class="icon">📄</span> POST /ingest/pdf</div>
+          <div class="card-title"><span class="icon"></span> POST /ingest/pdf</div>
           <label>User ID</label>
           <input type="text" id="pdf-uid" placeholder="backend_user_id" />
           <div class="mt-2">
@@ -1103,7 +1055,7 @@
             <input type="file" id="pdf-file" accept=".pdf" />
           </div>
           <div class="mt-2">
-            <button class="btn btn-primary" id="btn-pdf" onclick="ingestPDF()">📤 Upload & Parse</button>
+            <button class="btn btn-primary" id="btn-pdf" onclick="ingestPDF()"> Upload & Parse</button>
           </div>
           <div class="mt-2 text-muted" style="font-size:0.78rem; line-height:1.6;">
             <b style="color:var(--amber);">Supported formats:</b> SBI, HDFC, ICICI, Axis, Kotak bank statements (pdfplumber extraction). Agent automatically deduplicates and classifies each row.
@@ -1116,7 +1068,7 @@
             <span id="pdf-status-badge"></span>
           </div>
           <div id="pdf-response" class="response-placeholder">
-            ☝️ Upload a PDF to see extracted transactions
+             Upload a PDF to see extracted transactions
           </div>
         </div>
       </div>
@@ -1148,7 +1100,7 @@
             <input type="text" id="txn-search" placeholder="Search merchant name…" oninput="filterTable()" />
           </div>
           <div style="padding-top:1.5rem;">
-            <button class="btn btn-primary" onclick="fetchTransactions()">🔄 Fetch</button>
+            <button class="btn btn-primary" onclick="fetchTransactions()"> Fetch</button>
           </div>
         </div>
       </div>
@@ -1169,7 +1121,7 @@
             </tr>
           </thead>
           <tbody id="txn-tbody">
-            <tr><td colspan="7"><div class="empty-state"><div class="icon">📊</div>Fetch transactions to populate the ledger</div></td></tr>
+            <tr><td colspan="7"><div class="empty-state"><div class="icon"></div>Fetch transactions to populate the ledger</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -1188,21 +1140,21 @@
           <input type="text" id="ins-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchInsights()">🔍 Analyze</button>
+          <button class="btn btn-primary" onclick="fetchInsights()"> Analyze</button>
         </div>
       </div>
 
       <div class="grid-2" id="insights-grid" style="display:none;">
         <div class="card">
-          <div class="card-title"><span class="icon">💸</span> Expense Summary</div>
+          <div class="card-title"><span class="icon"></span> Expense Summary</div>
           <div id="expense-content"><div class="empty-state">Loading…</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">📈</span> Profit Summary</div>
+          <div class="card-title"><span class="icon"></span> Profit Summary</div>
           <div id="profit-content"><div class="empty-state">Loading…</div></div>
         </div>
         <div class="card" style="grid-column: 1 / -1;">
-          <div class="card-title"><span class="icon">📦</span> Raw API Response</div>
+          <div class="card-title"><span class="icon"></span> Raw API Response</div>
           <div class="response-panel" style="max-height:300px;">
             <div id="insights-raw" class="response-body"></div>
           </div>
@@ -1223,30 +1175,30 @@
           <input type="text" id="act-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchActions()">⚡ Get Actions</button>
+          <button class="btn btn-primary" onclick="fetchActions()"> Get Actions</button>
         </div>
       </div>
 
       <div class="grid-3 mb-2" id="action-summary-row" style="display:none;">
         <div class="metric-card rose">
-          <div class="metric-label">🔴 Critical</div>
+          <div class="metric-label"> Critical</div>
           <div class="metric-value" id="act-red-count">0</div>
           <div class="metric-sub">Immediate action required</div>
         </div>
         <div class="metric-card amber">
-          <div class="metric-label">🟡 Warnings</div>
+          <div class="metric-label"> Warnings</div>
           <div class="metric-value" id="act-amber-count">0</div>
           <div class="metric-sub">Review these items</div>
         </div>
         <div class="metric-card emerald">
-          <div class="metric-label">🟢 Opportunities</div>
+          <div class="metric-label"> Opportunities</div>
           <div class="metric-value" id="act-green-count">0</div>
           <div class="metric-sub">Available to capture</div>
         </div>
       </div>
 
       <div id="actions-list">
-        <div class="empty-state"><div class="icon">⚡</div>Fetch actions to see AI-generated alerts</div>
+        <div class="empty-state"><div class="icon"></div>Fetch actions to see AI-generated alerts</div>
       </div>
     </section>
 
@@ -1263,7 +1215,7 @@
           <input type="text" id="exp-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchExpenseAgent()">💸 Run Expense Agent</button>
+          <button class="btn btn-primary" onclick="fetchExpenseAgent()"> Run Expense Agent</button>
         </div>
       </div>
 
@@ -1271,15 +1223,15 @@
 
       <div class="grid-2" id="exp-grid" style="display:none;">
         <div class="card">
-          <div class="card-title"><span class="icon">📦</span> Category Breakdown</div>
+          <div class="card-title"><span class="icon"></span> Category Breakdown</div>
           <div id="exp-categories"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">🚨</span> Anomalies Detected</div>
+          <div class="card-title"><span class="icon"></span> Anomalies Detected</div>
           <div id="exp-anomalies"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card" style="grid-column: 1 / -1;">
-          <div class="card-title"><span class="icon">📦</span> Raw API Response — GET /expenses/{user_id}</div>
+          <div class="card-title"><span class="icon"></span> Raw API Response — GET /expenses/{user_id}</div>
           <div class="response-panel" style="max-height:300px;">
             <div id="exp-raw" class="response-body"></div>
           </div>
@@ -1300,7 +1252,7 @@
           <input type="text" id="pro-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchProfitAgent()">📈 Run Profit Agent</button>
+          <button class="btn btn-primary" onclick="fetchProfitAgent()"> Run Profit Agent</button>
         </div>
       </div>
 
@@ -1308,15 +1260,15 @@
 
       <div class="grid-2" id="pro-grid" style="display:none;">
         <div class="card">
-          <div class="card-title"><span class="icon">💰</span> Profit Breakdown</div>
+          <div class="card-title"><span class="icon"></span> Profit Breakdown</div>
           <div id="pro-breakdown"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">🏛️</span> GST & ITC Analysis</div>
+          <div class="card-title"><span class="icon"></span> GST & ITC Analysis</div>
           <div id="pro-gst"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card" style="grid-column: 1 / -1;">
-          <div class="card-title"><span class="icon">📦</span> Raw API Response — GET /profit/{user_id}</div>
+          <div class="card-title"><span class="icon"></span> Raw API Response — GET /profit/{user_id}</div>
           <div class="response-panel" style="max-height:300px;">
             <div id="pro-raw" class="response-body"></div>
           </div>
@@ -1337,7 +1289,7 @@
           <input type="text" id="book-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchBookkeeping()">📚 Run Bookkeeping Agent</button>
+          <button class="btn btn-primary" onclick="fetchBookkeeping()"> Run Bookkeeping Agent</button>
         </div>
       </div>
 
@@ -1345,15 +1297,15 @@
 
       <div class="grid-2" id="book-grid" style="display:none;">
         <div class="card">
-          <div class="card-title"><span class="icon">🧾</span> Cashbook Summary</div>
+          <div class="card-title"><span class="icon"></span> Cashbook Summary</div>
           <div id="book-summary"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">📦</span> Top Bookkeeping Notes</div>
+          <div class="card-title"><span class="icon"></span> Top Bookkeeping Notes</div>
           <div id="book-notes"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card" style="grid-column: 1 / -1;">
-          <div class="card-title"><span class="icon">📦</span> Raw API Response — GET /bookkeeping/{user_id}</div>
+          <div class="card-title"><span class="icon"></span> Raw API Response — GET /bookkeeping/{user_id}</div>
           <div class="response-panel" style="max-height:300px;">
             <div id="book-raw" class="response-body"></div>
           </div>
@@ -1374,7 +1326,7 @@
           <input type="text" id="fs-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchFinancialStatements()">📊 Generate Statements</button>
+          <button class="btn btn-primary" onclick="fetchFinancialStatements()"> Generate Statements</button>
         </div>
       </div>
 
@@ -1382,19 +1334,19 @@
 
       <div class="grid-2" id="fs-grid" style="display:none;">
         <div class="card">
-          <div class="card-title"><span class="icon">💰</span> Profit & Loss</div>
+          <div class="card-title"><span class="icon"></span> Profit & Loss</div>
           <div id="fs-pl"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">🏦</span> Balance Sheet</div>
+          <div class="card-title"><span class="icon"></span> Balance Sheet</div>
           <div id="fs-bs"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">💸</span> Cash Flow</div>
+          <div class="card-title"><span class="icon"></span> Cash Flow</div>
           <div id="fs-cf"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card" style="grid-column: 1 / -1;">
-          <div class="card-title"><span class="icon">📦</span> Raw API Response — GET /financial-statements/{user_id}</div>
+          <div class="card-title"><span class="icon"></span> Raw API Response — GET /financial-statements/{user_id}</div>
           <div class="response-panel" style="max-height:300px;">
             <div id="fs-raw" class="response-body"></div>
           </div>
@@ -1415,7 +1367,7 @@
           <input type="text" id="tax-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchIncomeTax()">💰 Calculate Tax</button>
+          <button class="btn btn-primary" onclick="fetchIncomeTax()"> Calculate Tax</button>
         </div>
       </div>
 
@@ -1423,15 +1375,15 @@
 
       <div class="grid-2" id="tax-grid" style="display:none;">
         <div class="card">
-          <div class="card-title"><span class="icon">📈</span> Taxable Income Summary</div>
+          <div class="card-title"><span class="icon"></span> Taxable Income Summary</div>
           <div id="tax-summary"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">💸</span> Tax Liability</div>
+          <div class="card-title"><span class="icon"></span> Tax Liability</div>
           <div id="tax-liability"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card" style="grid-column: 1 / -1;">
-          <div class="card-title"><span class="icon">📦</span> Raw API Response — GET /income-tax/{user_id}</div>
+          <div class="card-title"><span class="icon"></span> Raw API Response — GET /income-tax/{user_id}</div>
           <div class="response-panel" style="max-height:300px;">
             <div id="tax-raw" class="response-body"></div>
           </div>
@@ -1452,7 +1404,7 @@
           <input type="text" id="rec-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchReconciliation()">🔍 Run Reconciliation</button>
+          <button class="btn btn-primary" onclick="fetchReconciliation()"> Run Reconciliation</button>
         </div>
       </div>
 
@@ -1460,15 +1412,15 @@
 
       <div class="grid-2" id="rec-grid" style="display:none;">
         <div class="card">
-          <div class="card-title"><span class="icon">📋</span> Issues Summary</div>
+          <div class="card-title"><span class="icon"></span> Issues Summary</div>
           <div id="rec-issues"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">💰</span> Balance Check</div>
+          <div class="card-title"><span class="icon"></span> Balance Check</div>
           <div id="rec-balance"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card" style="grid-column: 1 / -1;">
-          <div class="card-title"><span class="icon">📦</span> Raw API Response — GET /reconciliation/{user_id}</div>
+          <div class="card-title"><span class="icon"></span> Raw API Response — GET /reconciliation/{user_id}</div>
           <div class="response-panel" style="max-height:300px;">
             <div id="rec-raw" class="response-body"></div>
           </div>
@@ -1489,7 +1441,7 @@
           <input type="text" id="audit-uid" placeholder="backend_user_id" />
         </div>
         <div style="padding-top:1.5rem;">
-          <button class="btn btn-primary" onclick="fetchAudit()">🕵️ Run Audit</button>
+          <button class="btn btn-primary" onclick="fetchAudit()"> Run Audit</button>
         </div>
       </div>
 
@@ -1497,15 +1449,15 @@
 
       <div class="grid-2" id="audit-grid" style="display:none;">
         <div class="card">
-          <div class="card-title"><span class="icon">🏛️</span> GST Validation</div>
+          <div class="card-title"><span class="icon"></span> GST Validation</div>
           <div id="audit-gst"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card">
-          <div class="card-title"><span class="icon">🚨</span> Suspicious Transactions</div>
+          <div class="card-title"><span class="icon"></span> Suspicious Transactions</div>
           <div id="audit-suspicious"><div class="empty-state">Loading...</div></div>
         </div>
         <div class="card" style="grid-column: 1 / -1;">
-          <div class="card-title"><span class="icon">📦</span> Raw API Response — GET /audit/{user_id}</div>
+          <div class="card-title"><span class="icon"></span> Raw API Response — GET /audit/{user_id}</div>
           <div class="response-panel" style="max-height:300px;">
             <div id="audit-raw" class="response-body"></div>
           </div>
@@ -1522,7 +1474,7 @@
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-title"><span class="icon">🏛️</span> Single Transaction Classifier</div>
+          <div class="card-title"><span class="icon"></span> Single Transaction Classifier</div>
           <label>Merchant / Party Name</label>
           <input type="text" id="gst-party" placeholder="e.g. Amazon, Porter, Swiggy" />
           <div class="mt-2">
@@ -1537,7 +1489,7 @@
             </select>
           </div>
           <div class="flex-gap mt-2">
-            <button class="btn btn-primary" onclick="classifyGST()">🔬 Classify via GST Agent</button>
+            <button class="btn btn-primary" onclick="classifyGST()"> Classify via GST Agent</button>
           </div>
 
           <div class="mt-2">
@@ -1557,7 +1509,7 @@
 
         <div>
           <div class="card" id="gst-result-card" style="display:none;">
-            <div class="card-title"><span class="icon">✅</span> Classification Result</div>
+            <div class="card-title"><span class="icon"></span> Classification Result</div>
             <div id="gst-result-visual"></div>
           </div>
           <div class="response-panel" id="gst-response-panel">
@@ -1566,12 +1518,12 @@
               <span id="gst-status-badge"></span>
             </div>
             <div id="gst-response" class="response-placeholder">
-              ☝️ Enter a merchant and click Classify
+               Enter a merchant and click Classify
             </div>
           </div>
 
           <div class="card mt-2">
-            <div class="card-title"><span class="icon">📊</span> ITC Opportunities — GET /insights/{user_id}</div>
+            <div class="card-title"><span class="icon"></span> ITC Opportunities — GET /insights/{user_id}</div>
             <div class="flex-gap items-center mb-1">
               <input type="text" id="itc-uid" placeholder="backend_user_id" style="flex:1;" />
               <button class="btn btn-ghost" onclick="fetchITC()">Analyze ITC</button>
@@ -1591,9 +1543,9 @@
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-title"><span class="icon">❤️</span> GET /health</div>
+          <div class="card-title"><span class="icon"></span> GET /health</div>
           <div class="text-muted mt-1 mb-2">Pings the backend health endpoint and measures response latency.</div>
-          <button class="btn btn-primary" onclick="checkHealth()">🏥 Ping Backend</button>
+          <button class="btn btn-primary" onclick="checkHealth()"> Ping Backend</button>
         </div>
 
         <div class="response-panel">
@@ -1610,7 +1562,7 @@
       <hr class="divider" />
 
       <div class="card">
-        <div class="card-title"><span class="icon">🗺️</span> API Route Map</div>
+        <div class="card-title"><span class="icon"></span> API Route Map</div>
         <div class="table-wrap mt-1">
           <table>
             <thead>
@@ -1705,7 +1657,7 @@
         dot.className = 'dot online';
         txt.textContent = 'Online';
         if (ms_el) ms_el.textContent = ms + 'ms';
-        if (m_status) m_status.textContent = '✅ OK';
+        if (m_status) m_status.textContent = ' OK';
       } else {
         throw new Error(r.status);
       }
@@ -1713,7 +1665,7 @@
       dot.className = 'dot offline';
       txt.textContent = 'Offline';
       if (ms_el) ms_el.textContent = '—';
-      if (m_status) m_status.textContent = '❌ Down';
+      if (m_status) m_status.textContent = ' Down';
     }
   }
 
@@ -1730,13 +1682,13 @@
       const data = await r.json();
       badge.innerHTML = `<span class="status-code status-200">${r.status}</span>`;
       panel.textContent = JSON.stringify(data, null, 2) + '\n\n// Response time: ' + ms + 'ms';
-      showToast('Backend is healthy ✅', 'success');
+      showToast('Backend is healthy ', 'success');
       document.getElementById('status-dot').className = 'dot online';
       document.getElementById('status-text').textContent = 'Online';
     } catch (e) {
       badge.innerHTML = `<span class="status-code status-5xx">Error</span>`;
       panel.textContent = 'Connection failed: ' + e.message + '\n\nMake sure the FastAPI server is running:\n  cd pocket-cfo-parser\n  uvicorn api.main:app --reload';
-      showToast('Connection failed ❌', 'error');
+      showToast('Connection failed ', 'error');
       document.getElementById('status-dot').className = 'dot offline';
       document.getElementById('status-text').textContent = 'Offline';
     }
@@ -1752,7 +1704,10 @@
     const payload = {
       name: document.getElementById('u-name').value.trim(),
       phone: document.getElementById('u-phone').value.trim(),
-      business_name: document.getElementById('u-biz').value.trim()
+      business_name: document.getElementById('u-biz').value.trim(),
+      industry: document.getElementById('u-industry') ? document.getElementById('u-industry').value.trim() : 'Unknown',
+      entity_type: document.getElementById('u-entity') ? document.getElementById('u-entity').value.trim() : 'Unknown',
+      annual_turnover: document.getElementById('u-turnover') ? (parseFloat(document.getElementById('u-turnover').value) || 0.0) : 0.0
     };
     if (!payload.name || !payload.phone || !payload.business_name) {
       showToast('Fill all fields first', 'error'); return;
@@ -1782,7 +1737,7 @@
       showToast('Request failed', 'error');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '🚀 Create User';
+      btn.innerHTML = ' Create User';
     }
   }
 
@@ -1819,7 +1774,7 @@
   function clearSMS() {
     document.getElementById('sms-text').value = '';
     document.getElementById('sms-response').className = 'response-placeholder';
-    document.getElementById('sms-response').textContent = '☝️ Paste an SMS and hit Parse';
+    document.getElementById('sms-response').textContent = ' Paste an SMS and hit Parse';
     document.getElementById('sms-parsed-card').style.display = 'none';
     document.getElementById('sms-status-badge').innerHTML = '';
   }
@@ -1858,7 +1813,7 @@
       showToast('Request failed', 'error');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '⚡ Parse SMS';
+      btn.innerHTML = ' Parse SMS';
     }
   }
 
@@ -1932,7 +1887,7 @@
       showToast('Upload failed', 'error');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '📤 Upload & Parse';
+      btn.innerHTML = ' Upload & Parse';
     }
   }
 
@@ -1944,7 +1899,7 @@
   async function fetchTransactions() {
     const uid = document.getElementById('txn-uid').value.trim() || USER_ID;
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
-    document.getElementById('txn-tbody').innerHTML = `<tr><td colspan="7"><div class="empty-state">⏳ Fetching transactions…</div></td></tr>`;
+    document.getElementById('txn-tbody').innerHTML = `<tr><td colspan="7"><div class="empty-state"> Fetching transactions…</div></td></tr>`;
     try {
       const r = await fetch(API + '/transactions/' + uid);
       const data = await r.json();
@@ -1953,7 +1908,7 @@
       filterTable();
       showToast(`Loaded ${allTxns.length} transactions`, 'success');
     } catch (e) {
-      document.getElementById('txn-tbody').innerHTML = `<tr><td colspan="7"><div class="empty-state">❌ ${e.message}</div></td></tr>`;
+      document.getElementById('txn-tbody').innerHTML = `<tr><td colspan="7"><div class="empty-state"> ${e.message}</div></td></tr>`;
       showToast('Failed to fetch', 'error');
     }
   }
@@ -1986,7 +1941,7 @@
   function renderTxnTable(txns) {
     const tbody = document.getElementById('txn-tbody');
     if (!txns.length) {
-      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">📭</div>No transactions match your filter</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon"></div>No transactions match your filter</div></td></tr>`;
       return;
     }
     tbody.innerHTML = txns.map(t => {
@@ -2061,11 +2016,11 @@
       
       const anomEl = document.getElementById('exp-anomalies');
       if (anomCount === 0) {
-        anomEl.innerHTML = '<div class="empty-state"><div class="icon">✅</div>No spending anomalies detected</div>';
+        anomEl.innerHTML = '<div class="empty-state"><div class="icon"></div>No spending anomalies detected</div>';
       } else {
         anomEl.innerHTML = (data.anomalies || []).map(a => `
           <div class="action-card red">
-            <div class="action-priority">🔴 OUTLIER: ${a.category}</div>
+            <div class="action-priority"> OUTLIER: ${a.category}</div>
             <div class="action-title">${a.transaction.party} — ₹${a.transaction.amount.toLocaleString()}</div>
             <div class="action-msg">${a.anomaly_reason}</div>
           </div>
@@ -2294,7 +2249,7 @@
   async function fetchActions() {
     const uid = document.getElementById('act-uid').value.trim() || USER_ID;
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
-    document.getElementById('actions-list').innerHTML = '<div class="empty-state">⏳ Running all agents…</div>';
+    document.getElementById('actions-list').innerHTML = '<div class="empty-state"> Running all agents…</div>';
     try {
       const r = await fetch(API + '/actions/' + uid);
       const data = await r.json();
@@ -2308,20 +2263,20 @@
       document.getElementById('action-summary-row').style.display = 'grid';
 
       if (!actions.length) {
-        document.getElementById('actions-list').innerHTML = '<div class="empty-state"><div class="icon">🎉</div>No alerts — everything looks good!</div>';
+        document.getElementById('actions-list').innerHTML = '<div class="empty-state"><div class="icon"></div>No alerts — everything looks good!</div>';
         return;
       }
       const sorted = [...red, ...amber, ...green];
       document.getElementById('actions-list').innerHTML = sorted.map(a => `
         <div class="action-card ${a.priority}">
-          <div class="action-priority">${a.priority === 'red' ? '🔴 CRITICAL' : a.priority === 'amber' ? '🟡 WARNING' : '🟢 OPPORTUNITY'}</div>
+          <div class="action-priority">${a.priority === 'red' ? ' CRITICAL' : a.priority === 'amber' ? ' WARNING' : ' OPPORTUNITY'}</div>
           <div class="action-title">${a.title}</div>
           <div class="action-msg">${a.message}</div>
           ${a.amount != null ? `<div class="action-amount">₹${Number(a.amount).toLocaleString('en-IN', {maximumFractionDigits:2})}</div>` : ''}
         </div>`).join('');
       showToast(`${actions.length} action cards generated`, 'success');
     } catch (e) {
-      document.getElementById('actions-list').innerHTML = `<div class="empty-state">❌ ${e.message}</div>`;
+      document.getElementById('actions-list').innerHTML = `<div class="empty-state"> ${e.message}</div>`;
       showToast('Failed: ' + e.message, 'error');
     }
   }
@@ -2405,7 +2360,7 @@
 
     const gst_amount = (amount * rule.gst_rate / (100 + rule.gst_rate)).toFixed(2);
     const itc_amount = rule.itc_eligible ? gst_amount : '0.00';
-    const source = rule.matched_rule === 'gemini-fallback' ? '🤖 Gemini AI Fallback' : '📖 Deterministic Rules Engine';
+    const source = rule.matched_rule === 'gemini-fallback' ? ' Gemini AI Fallback' : ' Deterministic Rules Engine';
 
     document.getElementById('gst-result-visual').innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
@@ -2424,7 +2379,7 @@
         <div>
           <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em;">ITC Eligibility</div>
           <div style="margin-top:4px;">
-            <span class="gst-chip ${rule.itc_eligible?'itc-yes':'itc-no'}">${rule.itc_eligible?'✅ ITC Claimable':'❌ Not Eligible'}</span>
+            <span class="gst-chip ${rule.itc_eligible?'itc-yes':'itc-no'}">${rule.itc_eligible?' ITC Claimable':' Not Eligible'}</span>
           </div>
         </div>
         <div>
@@ -2448,7 +2403,7 @@
     const uid = document.getElementById('itc-uid').value.trim() || USER_ID;
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
     const el = document.getElementById('itc-result');
-    el.innerHTML = '<div class="text-muted">⏳ Analyzing ITC opportunities…</div>';
+    el.innerHTML = '<div class="text-muted"> Analyzing ITC opportunities…</div>';
     try {
       const r = await fetch(API + '/insights/' + uid);
       const data = await r.json();
@@ -2458,7 +2413,7 @@
       const d2 = await r2.json();
       const itcAction = (d2.actions || []).find(a => a.title === 'Input Tax Credit Available');
       el.innerHTML = itcAction
-        ? `<div class="action-card green"><div class="action-priority">🟢 ITC OPPORTUNITY</div><div class="action-title">${itcAction.title}</div><div class="action-msg">${itcAction.message}</div><div class="action-amount">₹${Number(itcAction.amount||0).toLocaleString('en-IN', {maximumFractionDigits:2})}</div></div>`
+        ? `<div class="action-card green"><div class="action-priority"> ITC OPPORTUNITY</div><div class="action-title">${itcAction.title}</div><div class="action-msg">${itcAction.message}</div><div class="action-amount">₹${Number(itcAction.amount||0).toLocaleString('en-IN', {maximumFractionDigits:2})}</div></div>`
         : `<div class="text-muted" style="font-size:0.82rem; margin-top:8px;">No ITC opportunities found yet. Ingest more transactions first.</div>`;
       showToast('ITC analysis complete', 'success');
     } catch (e) {
@@ -2475,9 +2430,9 @@
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
     
     // Show loading state
-    document.getElementById('fs-pl').innerHTML = '<div class="text-muted">⏳ Generating P&L…</div>';
-    document.getElementById('fs-bs').innerHTML = '<div class="text-muted">⏳ Generating Balance Sheet…</div>';
-    document.getElementById('fs-cf').innerHTML = '<div class="text-muted">⏳ Generating Cash Flow…</div>';
+    document.getElementById('fs-pl').innerHTML = '<div class="text-muted"> Generating P&L…</div>';
+    document.getElementById('fs-bs').innerHTML = '<div class="text-muted"> Generating Balance Sheet…</div>';
+    document.getElementById('fs-cf').innerHTML = '<div class="text-muted"> Generating Cash Flow…</div>';
     
     try {
       const r = await fetch(API + '/financial-statements/' + uid);
@@ -2561,8 +2516,8 @@
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
     
     // Show loading state
-    document.getElementById('tax-summary').innerHTML = '<div class="text-muted">⏳ Calculating tax summary…</div>';
-    document.getElementById('tax-liability').innerHTML = '<div class="text-muted">⏳ Calculating tax liability…</div>';
+    document.getElementById('tax-summary').innerHTML = '<div class="text-muted"> Calculating tax summary…</div>';
+    document.getElementById('tax-liability').innerHTML = '<div class="text-muted"> Calculating tax liability…</div>';
     
     try {
       const r = await fetch(API + '/income-tax/' + uid);
@@ -2634,8 +2589,8 @@
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
     
     // Show loading state
-    document.getElementById('rec-issues').innerHTML = '<div class="text-muted">⏳ Checking for issues…</div>';
-    document.getElementById('rec-balance').innerHTML = '<div class="text-muted">⏳ Checking balances…</div>';
+    document.getElementById('rec-issues').innerHTML = '<div class="text-muted"> Checking for issues…</div>';
+    document.getElementById('rec-balance').innerHTML = '<div class="text-muted"> Checking balances…</div>';
     
     try {
       const r = await fetch(API + '/reconciliation/' + uid);
@@ -2729,9 +2684,9 @@
     if (!uid) { showToast('Enter a User ID', 'error'); return; }
     
     // Show loading state
-    document.getElementById('audit-gst').innerHTML = '<div class="text-muted">⏳ Performing audit…</div>';
-    document.getElementById('audit-suspicious').innerHTML = '<div class="text-muted">⏳ Performing audit…</div>';
-    document.getElementById('audit-raw').innerHTML = '<div class="text-muted">⏳ Performing audit…</div>';
+    document.getElementById('audit-gst').innerHTML = '<div class="text-muted"> Performing audit…</div>';
+    document.getElementById('audit-suspicious').innerHTML = '<div class="text-muted"> Performing audit…</div>';
+    document.getElementById('audit-raw').innerHTML = '<div class="text-muted"> Performing audit…</div>';
     
     // Show the grid
     document.getElementById('audit-grid').style.display = 'grid';
