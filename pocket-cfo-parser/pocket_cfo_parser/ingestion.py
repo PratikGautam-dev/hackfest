@@ -26,6 +26,14 @@ def ingest_sms(text: str, user_id: str) -> Transaction | None:
     if result is not None:
         classification = classify_transaction(result)
         result.category = classification.get("category", "Uncategorized")
+        result.sub_category = classification.get("sub_category", "Uncategorized")
+        result.business_nature = classification.get("business_nature", "business")
+        result.gst_rate = classification.get("gst_rate", 0.0)
+        result.itc_eligible = classification.get("itc_eligible", False)
+        result.hsn_sac = classification.get("hsn_sac", "UNKNOWN")
+        result.gst_amount = classification.get("gst_amount", 0.0)
+        result.itc_amount = classification.get("itc_amount", 0.0)
+        result.matched_rule = classification.get("matched_rule", "none")
         if classification.get("confidence", 0) > result.confidence:
             result.confidence = classification["confidence"]
         save_transaction(result, user_id)
@@ -46,6 +54,14 @@ def ingest_pdf(filepath: str, user_id: str) -> list[Transaction]:
     for txn in results:
         classification = classify_transaction(txn)
         txn.category = classification.get("category", "Uncategorized")
+        txn.sub_category = classification.get("sub_category", "Uncategorized")
+        txn.business_nature = classification.get("business_nature", "business")
+        txn.gst_rate = classification.get("gst_rate", 0.0)
+        txn.itc_eligible = classification.get("itc_eligible", False)
+        txn.hsn_sac = classification.get("hsn_sac", "UNKNOWN")
+        txn.gst_amount = classification.get("gst_amount", 0.0)
+        txn.itc_amount = classification.get("itc_amount", 0.0)
+        txn.matched_rule = classification.get("matched_rule", "none")
         if classification.get("confidence", 0) > txn.confidence:
             txn.confidence = classification["confidence"]
         save_transaction(txn, user_id)

@@ -1,59 +1,117 @@
 """
-Data Seeding Pipeline
-Dynamically populates local MongoDB constraints structurally bridging the demo dashboard explicitly.
+API-based Data Seeding Script
+Posts 60 realistic bank SMS messages to the live FastAPI backend
+so all agents (GST, Expense, Profit) process and store them correctly.
 """
 
-import os
 import sys
+import time
+import requests
 
-# Ensure project root natively handles absolute execution bounding strings reliably
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+API_BASE = "http://localhost:8000"
 
-from pocket_cfo_parser.ingestion import ingest_batch_sms, ingest_pdf
-from pocket_cfo_parser.db.mongo import save_user, users_collection
-from tests.test_data.sample_sms import SAMPLE_SMS
 
-def seed_demo_data():
-    print(">>> Initializing Hackathon Seeding Matrix...")
-    
-    # Enforce safe mathematical idempotency explicitly wiping isolated parameters
-    users_collection.delete_many({"name": "Demo Business"})
-    print("[-] Cleared pre-existing mock demo structures native bounds.")
-    
-    # Establish base boundaries creating proper identification constraints 
-    user_id = save_user("Demo Business", "9876543210", "Sharma General Traders")
-    print(f"[+] Instantiated Demo Profile logically mapping into ID: {user_id}")
-    
-    # 1. Pipeline Unstructured Text Constraints securely natively
-    print(f"[*] Dispatching sequential SMS logic matrices natively...")
-    sms_txns = ingest_batch_sms(SAMPLE_SMS, user_id)
-    print(f"[+] Successfully structured {len(sms_txns)} textual occurrences globally.")
-    
-    # 2. Pipeline Multi-modal Document Parameters explicitly structurally
-    print(f"[*] Booting PDF tabular arrays seamlessly extracting parameters...")
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    hdfc_path = os.path.join(base_dir, "tests", "test_data", "hdfc_statement.pdf")
-    sbi_path = os.path.join(base_dir, "tests", "test_data", "sbi_statement.pdf")
-    
-    if os.path.exists(hdfc_path):
-        hdfc_txns = ingest_pdf(hdfc_path, user_id)
-        print(f"[+] HDFC engine natively extracted {len(hdfc_txns)} document records securely.")
-    else:
-        print(f"[!] Target natively unstructured: {hdfc_path} failed to locate.")
-        
-    if os.path.exists(sbi_path):
-        sbi_txns = ingest_pdf(sbi_path, user_id)
-        print(f"[+] SBI engine natively extracted {len(sbi_txns)} document records securely.")
-    else:
-        print(f"[!] Target natively unstructured: {sbi_path} failed to locate.")
-        
-    print("\n" + "=" * 50)
-    print("               DATA SEEDING COMPLETE               ")
-    print("=" * 50)
-    print(f"\nACTION REQUIRED:\nNavigate to 'pocket-cfo-frontend/app/page.js'\nUpdate the constant explicitly mapping bounds:")
-    print(f'\n    const USER_ID = "{user_id}";\n')
-    print("=" * 50)
+def create_user() -> str:
+    payload = {
+        "name": "Demo Business",
+        "phone": "9876543210",
+        "business_name": "Sharma General Traders"
+    }
+    resp = requests.post(f"{API_BASE}/users/create", json=payload)
+    data = resp.json()
+    uid = data.get("backend_user_id", "")
+    print(f"\n[+] User created -> {uid}\n")
+    return uid
+
+
+def seed_sms(user_id: str):
+    sys.path.insert(0, ".")
+    from tests.test_data.sample_sms import SAMPLE_SMS
+
+    print(f"[*] Seeding {len(SAMPLE_SMS)} SMS messages...\n")
+    ok = skip = fail = 0
+
+    for i, sms in enumerate(SAMPLE_SMS, 1):
+        try:
+            resp = requests.post(
+                f"{API_BASE}/ingest/sms",
+                json={"user_id": user_id, "text": sms},
+                timeout=15
+            )
+            data = resp.json()
+            if data.get("status") == "skipped":
+                skip += 1
+                print(f"  [{i:02d}] SKIP  (non-transactional)")
+            elif data.get("amount") is not None:
+                ok += 1
+                txn_type = data.get("type", "?").upper()
+                party    = data.get("party", "Unknown")
+                amount   = data.get("amount", 0)
+                cat      = data.get("category", "Uncategorized")
+                conf     = int((data.get("confidence", 0)) * 100)
+                symbol   = "+" if txn_type == "CREDIT" else "-"
+                print(f"  [{i:02d}] OK    {txn_type:<6} {symbol}Rs.{amount:>10,.2f}  | {party:<28} | {cat:<30} | {conf}%")
+            else:
+                fail += 1
+                print(f"  [{i:02d}] FAIL  Unexpected: {data}")
+        except Exception as e:
+            fail += 1
+            print(f"  [{i:02d}] ERR   {e}")
+
+        time.sleep(0.1)
+
+    print(f"\n{'-'*80}")
+    print(f"  OK: {ok}   Skipped: {skip}   Failed: {fail}")
+    print(f"{'-'*80}")
+
+
+def print_summary(user_id: str):
+    print("\n[*] Running agent summary...\n")
+    try:
+        actions = requests.get(f"{API_BASE}/actions/{user_id}").json()
+        cards   = actions.get("actions", [])
+        red     = [a for a in cards if a["priority"] == "red"]
+        amber   = [a for a in cards if a["priority"] == "amber"]
+        green   = [a for a in cards if a["priority"] == "green"]
+
+        print(f"  [RED]   Critical    : {len(red)}")
+        print(f"  [AMBER] Warnings    : {len(amber)}")
+        print(f"  [GREEN] Opportunity : {len(green)}")
+        for a in cards:
+            tag = {"red": "[RED]", "amber": "[AMB]", "green": "[GRN]"}.get(a["priority"], "[?]")
+            amt = f"  Rs.{a['amount']:,.2f}" if a.get("amount") is not None else ""
+            print(f"\n  {tag} {a['title']}{amt}")
+            print(f"       {a['message']}")
+    except Exception as e:
+        print(f"  [-] Could not fetch actions: {e}")
+
+
+def main():
+    print("=" * 80)
+    print("       POCKET CFO -- AGENT TEST DATA SEEDER")
+    print("=" * 80)
+
+    try:
+        requests.get(f"{API_BASE}/health", timeout=3)
+    except Exception:
+        print("\n[-] Backend is not running. Start it first:\n")
+        print("   cd pocket-cfo-parser && source .venv/Scripts/activate && uvicorn api.main:app --reload --port 8000\n")
+        sys.exit(1)
+
+    user_id = create_user()
+    if not user_id:
+        print("[-] Failed to create user. Check if MongoDB is connected.")
+        sys.exit(1)
+
+    seed_sms(user_id)
+    print_summary(user_id)
+
+    print(f"\n{'='*80}")
+    print(f"  DONE -- paste this User ID into the testing dashboard:")
+    print(f"\n      {user_id}\n")
+    print(f"  Dashboard -> http://localhost:5500")
+    print(f"{'='*80}\n")
 
 
 if __name__ == "__main__":
-    seed_demo_data()
+    main()

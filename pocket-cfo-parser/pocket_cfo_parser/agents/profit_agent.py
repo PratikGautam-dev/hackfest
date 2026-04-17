@@ -5,7 +5,7 @@ operational expenses, mapped structural GST deductions, and ITC claims safely.
 """
 
 from pocket_cfo_parser.models.transaction import Transaction
-from pocket_cfo_parser.agents.gst_agent import classify_transaction, analyze_itc_opportunities
+from pocket_cfo_parser.agents.gst_agent import analyze_itc_opportunities
 
 def calculate_profit(transactions: list[Transaction]) -> dict:
     """
@@ -20,25 +20,20 @@ def calculate_profit(transactions: list[Transaction]) -> dict:
     expense_count = 0
     
     for txn in transactions:
-        # Credits map mathematically to Revenue occurrences 
         if txn.type == "credit":
             total_revenue += txn.amount
             revenue_count += 1
-        # Debits map conceptually sequentially to Expenditures
         elif txn.type == "debit":
             total_expenses += txn.amount
             expense_count += 1
-            
-            # Sub-aggregate embedded GST costs spanning out bounding models globally
-            classification = classify_transaction(txn)
-            total_gst_paid += classification["gst_amount"]
+            total_gst_paid += getattr(txn, "gst_amount", 0.0)
             
     # Derive core business operational bounds natively
     gross_profit = total_revenue - total_expenses
     
     # Run the ITC analytical engine natively locating recoverable credit injections
     itc_analysis = analyze_itc_opportunities(transactions)
-    total_itc_claimable = itc_analysis["total_itc_claimable"]
+    total_itc_claimable = itc_analysis.get("total_itc_claimable", 0.0)
     
     # Net logic: Extracted ITC effectively offsets expenditure tax boundaries improving final returns mathematically
     net_profit = gross_profit + total_itc_claimable

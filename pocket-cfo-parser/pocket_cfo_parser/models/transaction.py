@@ -34,6 +34,14 @@ class Transaction:
     
     # Broad classification of the transaction, defaults to "uncategorized"
     category: str = "uncategorized"
+    sub_category: str = "uncategorized"
+    business_nature: str = "business"
+    gst_rate: float = 0.0
+    itc_eligible: bool = False
+    hsn_sac: str = "UNKNOWN"
+    gst_amount: float = 0.0
+    itc_amount: float = 0.0
+    matched_rule: str = "none"
     
     # A float between 0.0 and 1.0 indicating how sure the parser is about this parse
     confidence: float = 1.0

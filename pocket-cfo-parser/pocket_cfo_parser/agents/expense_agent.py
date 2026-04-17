@@ -6,7 +6,6 @@ leveraging standard deviation variance logic and categorical boundaries.
 
 import statistics
 from pocket_cfo_parser.models.transaction import Transaction
-from pocket_cfo_parser.agents.gst_agent import classify_transaction
 
 def categorize_expenses(transactions: list[Transaction]) -> dict:
     """
@@ -14,32 +13,35 @@ def categorize_expenses(transactions: list[Transaction]) -> dict:
     Determines average bounds and captures volumetric tracking globally.
     """
     by_category = {}
-    total_expenses = 0.0
+    total_business_expenses = 0.0
+    total_personal_expenses = 0.0
     transaction_count = 0
     
     for txn in transactions:
         # Analytics solely processes deductive spending flows (expenses)
         if txn.type != "debit":
             continue
-            
-        # Tap into the GST deterministic/native LLM rules engine
-        classification = classify_transaction(txn)
-        cat = classification["category"]
         
-        if cat not in by_category:
-            by_category[cat] = {
+        category = txn.category or "Uncategorized"
+        nature = txn.business_nature or "business"
+        
+        if category not in by_category:
+            by_category[category] = {
                 "total_spent": 0.0,
                 "transaction_count": 0,
                 "average_transaction": 0.0,
+                "nature": nature,
                 "transactions": []
             }
             
-        # Iteratively append mapped constraints 
-        by_category[cat]["total_spent"] += txn.amount
-        by_category[cat]["transaction_count"] += 1
-        by_category[cat]["transactions"].append(txn.to_dict())
+        by_category[category]["total_spent"] += txn.amount
+        by_category[category]["transaction_count"] += 1
+        by_category[category]["transactions"].append(txn.to_dict())
         
-        total_expenses += txn.amount
+        if nature == "personal":
+            total_personal_expenses += txn.amount
+        else:
+            total_business_expenses += txn.amount
         transaction_count += 1
         
     # Re-calculate averages mapping finalized bounded dimensions
@@ -60,7 +62,9 @@ def categorize_expenses(transactions: list[Transaction]) -> dict:
             
     return {
         "by_category": by_category,
-        "total_expenses": round(total_expenses, 2),
+        "total_business_expenses": round(total_business_expenses, 2),
+        "total_personal_expenses": round(total_personal_expenses, 2),
+        "total_expenses": round(total_business_expenses + total_personal_expenses, 2),
         "top_category": top_category,
         "transaction_count": transaction_count
     }
@@ -78,10 +82,9 @@ def detect_anomalies(transactions: list[Transaction]) -> list[dict]:
         if txn.type != "debit":
             continue
             
-        classification = classify_transaction(txn)
-        cat = classification["category"]
+        category = txn.category or "Uncategorized"
         party = txn.party.lower() if txn.party else ""
-        group_key = f"{cat}|{party}"
+        group_key = f"{category}|{party}"
         
         if group_key not in by_category:
             by_category[group_key] = []

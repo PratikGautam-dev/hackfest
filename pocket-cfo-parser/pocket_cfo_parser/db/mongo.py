@@ -21,13 +21,14 @@ DB_NAME = os.getenv("DB_NAME", "pocket_cfo")
 # Initialize the MongoDB client globally. 
 # It's a best practice to reuse a single connection pool across the app.
 client = MongoClient(MONGODB_URI)
-
-# Obtain references to the specified database
 db = client[DB_NAME]
-
-# Obtain references to the specific collections
 users_collection = db['users']
 transactions_collection = db['transactions']
+
+try:
+    users_collection.drop_index("email_1")
+except Exception:
+    pass
 
 def ping_db():
     """
@@ -73,21 +74,22 @@ def save_transaction(transaction, user_id: str):
 
 def save_user(name: str, phone: str, business_name: str) -> str:
     """
-    Creates a new user profile document in the database and returns 
-    the native MongoDB ObjectId as a string.
+    Creates or updates a user profile document identified by phone number.
+    Returns the MongoDB ObjectId as a string.
     """
     user_document = {
         "name": name,
         "phone": phone,
         "business_name": business_name
     }
-    
     try:
-        # Insert the record and collect its respective generated ID object
-        result = users_collection.insert_one(user_document)
-        
-        # We process the returned ObjectId into a generic string for easier usability
-        return str(result.inserted_id)
+        result = users_collection.find_one_and_update(
+            {"phone": phone},
+            {"$set": user_document},
+            upsert=True,
+            return_document=True
+        )
+        return str(result["_id"])
     except PyMongoError as e:
         logger.error(f"Failed to save user {name}: {e}")
         return ""

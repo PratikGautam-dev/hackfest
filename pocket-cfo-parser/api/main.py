@@ -19,8 +19,15 @@ from pocket_cfo_parser.ingestion import ingest_sms, ingest_pdf
 from pocket_cfo_parser.db.mongo import get_transactions_by_user, save_user
 from pocket_cfo_parser.models.transaction import Transaction
 from pocket_cfo_parser.agents.expense_agent import get_expense_summary
-from pocket_cfo_parser.agents.profit_agent import get_profit_summary
+from pocket_cfo_parser.agents.profit_agent_v2 import get_profit_summary as get_profit_summary_v2
 from pocket_cfo_parser.agents.gst_agent import analyze_itc_opportunities
+from pocket_cfo_parser.agents.tax_savings_agent import get_tax_insights
+from pocket_cfo_parser.agents.gstr_report_agent import generate_gst_compliance_report
+from pocket_cfo_parser.agents.bookkeeping_agent import get_bookkeeping_summary
+from pocket_cfo_parser.agents.financial_statements_agent import get_financial_statements
+from pocket_cfo_parser.agents.income_tax_agent import get_income_tax_summary
+from pocket_cfo_parser.agents.reconciliation_agent import get_reconciliation_report
+from pocket_cfo_parser.agents.audit_agent import get_audit_report
 
 # Instantiate API architecture
 app = FastAPI(
@@ -139,6 +146,14 @@ def _fetch_user_transactions(user_id: str) -> list[Transaction]:
             date=txn_date,
             source=r.get("source", "sms"),
             category=r.get("category", "Uncategorized"),
+            sub_category=r.get("sub_category", "Uncategorized"),
+            business_nature=r.get("business_nature", "business"),
+            gst_rate=r.get("gst_rate", 0.0),
+            itc_eligible=r.get("itc_eligible", False),
+            hsn_sac=r.get("hsn_sac", "UNKNOWN"),
+            gst_amount=r.get("gst_amount", 0.0),
+            itc_amount=r.get("itc_amount", 0.0),
+            matched_rule=r.get("matched_rule", "none"),
             raw_text=r.get("raw_text", ""),
             confidence=r.get("confidence", 0.9)
         )
@@ -150,19 +165,211 @@ def _fetch_user_transactions(user_id: str) -> list[Transaction]:
 @app.get("/insights/{user_id}")
 def insights_route(user_id: str):
     """
-    Chronologically unpacks structured intelligence bounds dynamically providing 
-    compound payloads aggregating metrics cleanly comprehensively inherently securely.
+    High-level financial insights for dashboard.
+    Quick overview of profit, expenses, and tax opportunities.
     """
     txns = _fetch_user_transactions(user_id)
     
-    # Process distinct operational bounds dependencies logic securely
-    expenses = get_expense_summary(txns)
-    profits = get_profit_summary(txns)
+    profit_data = get_profit_summary_v2(txns)
+    expense_data = get_expense_summary(txns)
+    tax_data = get_tax_insights(txns)
     
     return {
-        "expense_summary": expenses,
-        "profit_summary": profits
+        "user_id": user_id,
+        "financial_overview": {
+            "period": "Last 30 days",
+            "net_profit": profit_data["overall"]["net_profit"],
+            "total_revenue": profit_data["overall"]["total_revenue"],
+            "total_expenses": profit_data["overall"]["total_expenses"],
+            "profit_margin_percent": profit_data["overall"]["profit_margin_percent"],
+            "transactions_processed": profit_data["overall"]["transaction_count"]
+        },
+        "top_expense_categories": {
+            cat: data["total_expenses"]
+            for cat, data in sorted(
+                expense_data.get("by_category", {}).items(),
+                key=lambda x: x[1]["total_spent"],
+                reverse=True
+            )[:5]
+        },
+        "tax_opportunities": {
+            "potential_monthly_savings": tax_data["summary"]["potential_savings_per_month"],
+            "quick_wins": tax_data["quick_wins"],
+            "total_action_items": tax_data["summary"]["total_action_items"]
+        },
+        "generated_at": datetime.now().isoformat()
     }
+
+
+@app.get("/expenses/{user_id}")
+def expenses_route(user_id: str):
+    txns = _fetch_user_transactions(user_id)
+    return get_expense_summary(txns)
+
+
+@app.get("/profit/{user_id}")
+def profit_route(user_id: str):
+    txns = _fetch_user_transactions(user_id)
+    return get_profit_summary_v2(txns)
+
+
+@app.get("/tax-savings/{user_id}")
+def tax_savings_route(user_id: str):
+    """
+    Tax optimization strategies and potential savings.
+    Recommends ways to maximize ITC, optimize expenses, and reduce tax burden.
+    """
+    txns = _fetch_user_transactions(user_id)
+    insights = get_tax_insights(txns)
+    return {
+        "user_id": user_id,
+        "tax_insights": insights,
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+@app.get("/bookkeeping/{user_id}")
+def bookkeeping_route(user_id: str):
+    """
+    Bookkeeping summary for ledger review.
+    Includes cashbook entries, category counts, GST and ITC totals, and bookkeeping remarks.
+    """
+    txns = _fetch_user_transactions(user_id)
+    summary = get_bookkeeping_summary(txns)
+    return {
+        "user_id": user_id,
+        "bookkeeping_summary": summary,
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+@app.get("/gst-report/{user_id}")
+def gst_report_route(user_id: str):
+    """
+    Complete GST compliance report package:
+    - GSTR-1 draft (outward supplies)
+    - GSTR-3B draft (monthly return)
+    - ITC summary
+    - Filing checklist
+    """
+    txns = _fetch_user_transactions(user_id)
+    report = generate_gst_compliance_report(txns)
+    return {
+        "user_id": user_id,
+        "report": report
+    }
+
+
+@app.get("/financial-statements/{user_id}")
+def financial_statements_route(user_id: str):
+    """
+    Generate core financial statements for CA review:
+    - Profit & Loss statement
+    - Simplified Balance Sheet
+    - Cash Flow statement
+    """
+    txns = _fetch_user_transactions(user_id)
+    statements = get_financial_statements(txns)
+    return {
+        "user_id": user_id,
+        "financial_statements": statements,
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+@app.get("/income-tax/{user_id}")
+def income_tax_route(user_id: str):
+    """
+    Estimate income tax liability and common deductions based on transaction history.
+    """
+    txns = _fetch_user_transactions(user_id)
+    summary = get_income_tax_summary(txns)
+    return {
+        "user_id": user_id,
+        "income_tax_summary": summary,
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+@app.get("/reconciliation/{user_id}")
+def reconciliation_route(user_id: str):
+    """
+    Run a reconciliation assessment to detect duplicates, gaps, and matching issues.
+    """
+    txns = _fetch_user_transactions(user_id)
+    report = get_reconciliation_report(txns)
+    return {
+        "user_id": user_id,
+        "reconciliation_report": report,
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+@app.get("/audit/{user_id}")
+def audit_route(user_id: str):
+    """
+    Audit and validate transaction accuracy, GST consistency, and suspicious patterns.
+    """
+    txns = _fetch_user_transactions(user_id)
+    report = get_audit_report(txns)
+    return {
+        "user_id": user_id,
+        "audit_report": report,
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+@app.get("/ca-summary/{user_id}")
+def ca_summary_route(user_id: str):
+    """
+    Complete CA-level financial summary for the user.
+    Combines: Profit, Expenses, Tax Savings, and GST Compliance.
+    """
+    txns = _fetch_user_transactions(user_id)
+    
+    profit_data = get_profit_summary_v2(txns)
+    expense_data = get_expense_summary(txns)
+    tax_data = get_tax_insights(txns)
+    gst_data = generate_gst_compliance_report(txns)
+    financial_statements = get_financial_statements(txns)
+    income_tax = get_income_tax_summary(txns)
+    reconciliation = get_reconciliation_report(txns)
+    audit = get_audit_report(txns)
+    
+    return {
+        "user_id": user_id,
+        "summary": {
+            "net_profit": profit_data["overall"]["net_profit"],
+            "total_revenue": profit_data["overall"]["total_revenue"],
+            "total_expenses": profit_data["overall"]["total_expenses"],
+            "profit_margin": profit_data["overall"]["profit_margin_percent"],
+            "potential_monthly_savings": tax_data["summary"]["potential_savings_per_month"],
+            "claimable_itc": tax_data["summary"]["potential_savings_per_month"],
+            "gst_payable": gst_data["report"]["gstr_3b"]["section_3_net_payable"]["net_gst_payable"],
+            "refund_available": gst_data["report"]["gstr_3b"]["section_3_net_payable"]["net_refund_available"],
+            "taxable_income": income_tax["taxable_income_summary"]["taxable_income"],
+            "reconciliation_issues": reconciliation["issues"]["summary"],
+            "audit_flags": audit["summary"]
+        },
+        "detailed_breakdown": {
+            "profit": profit_data,
+            "expenses": expense_data,
+            "tax_opportunities": tax_data,
+            "gst_compliance": gst_data,
+            "financial_statements": financial_statements,
+            "income_tax": income_tax,
+            "reconciliation": reconciliation,
+            "audit": audit
+        },
+        "action_items": tax_data["summary"]["high_priority_items"],
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+@app.get("/gst/{user_id}")
+def gst_route(user_id: str):
+    txns = _fetch_user_transactions(user_id)
+    return analyze_itc_opportunities(txns)
 
 
 @app.get("/actions/{user_id}")
@@ -175,7 +382,7 @@ def actions_route(user_id: str):
     actions = []
     
     expenses = get_expense_summary(txns)
-    profits = get_profit_summary(txns)
+    profits = get_profit_summary_v2(txns)
     itc_ops = analyze_itc_opportunities(txns)
     
     # 1. Red Cards (Critical Focus Required): Expense anomalies, Overall negative balances implicitly 
@@ -188,7 +395,7 @@ def actions_route(user_id: str):
             "amount": amt
         })
         
-    net_profit = profits.get("net_profit", 0.0)
+    net_profit = profits.get("overall", {}).get("net_profit", 0.0)
     if net_profit < 0:
         actions.append({
             "priority": "red",
