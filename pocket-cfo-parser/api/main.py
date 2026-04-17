@@ -15,6 +15,10 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Imports from pocket_cfo_parser core logic
 from pocket_cfo_parser.ingestion import ingest_sms, ingest_pdf
@@ -45,6 +49,9 @@ from pocket_cfo_parser.compliance_engine import (
     trigger_drl_if_missing_invoice,
     update_aa_consent_status,
     verify_msme_vendor,
+    generate_ca_report_pdf,
+    trigger_deadline_notifications,
+    get_compliance_calendar_events
 )
 
 # Instantiate API architecture
@@ -475,6 +482,26 @@ def ca_summary_route(user_id: str):
     reconciliation = get_reconciliation_report(txns)
     audit = get_audit_report(txns)
     
+    action_items = []
+    for item in tax_data.get("full_plan", {}).get("expense_gaps", []):
+        action_items.append({
+            "priority": item.get("priority", "info"),
+            "title": item.get("title", "Tax opportunity"),
+            "message": item.get("description") or item.get("action", "")
+        })
+    for item in tax_data.get("full_plan", {}).get("optimization_tips", []):
+        action_items.append({
+            "priority": item.get("priority", "info"),
+            "title": item.get("title", "Optimization tip"),
+            "message": item.get("description") or item.get("action", "")
+        })
+    for item in tax_data.get("full_plan", {}).get("missed_itc_opportunities", [])[:5]:
+        action_items.append({
+            "priority": "medium",
+            "title": f"Review ITC for {item.get('party', 'transaction')}",
+            "message": item.get("recommendation", "")
+        })
+
     return {
         "user_id": user_id,
         "summary": {
@@ -484,8 +511,8 @@ def ca_summary_route(user_id: str):
             "profit_margin": profit_data["overall"]["profit_margin_percent"],
             "potential_monthly_savings": tax_data["summary"]["potential_savings_per_month"],
             "claimable_itc": tax_data["summary"]["potential_savings_per_month"],
-            "gst_payable": gst_data["report"]["gstr_3b"]["section_3_net_payable"]["net_gst_payable"],
-            "refund_available": gst_data["report"]["gstr_3b"]["section_3_net_payable"]["net_refund_available"],
+            "gst_payable": gst_data["gstr_3b"]["section_3_net_payable"]["net_gst_payable"],
+            "refund_available": gst_data["gstr_3b"]["section_3_net_payable"]["net_refund_available"],
             "taxable_income": income_tax["taxable_income_summary"]["taxable_income"],
             "reconciliation_issues": reconciliation["issues"]["summary"],
             "audit_flags": audit["summary"]
@@ -494,15 +521,32 @@ def ca_summary_route(user_id: str):
             "profit": profit_data,
             "expenses": expense_data,
             "tax_opportunities": tax_data,
-            "gst_compliance": gst_data,
+            "gst_compliance": {"report": gst_data},
             "financial_statements": financial_statements,
             "income_tax": income_tax,
             "reconciliation": reconciliation,
             "audit": audit
         },
-        "action_items": tax_data["summary"]["high_priority_items"],
+        "action_items": action_items,
         "generated_at": datetime.now().isoformat()
     }
+
+
+@app.get("/ca-summary/{user_id}/pdf")
+def ca_summary_pdf_route(user_id: str):
+  
+    # Generate the full JSON report internally
+    report_data = ca_summary_route(user_id)
+    out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "generated")
+    
+    # Pass to the reportlab generator
+    pdf_path = generate_ca_report_pdf(user_id, report_data, out_dir)
+    
+    return FileResponse(
+        pdf_path, 
+        media_type="application/pdf", 
+        filename=os.path.basename(pdf_path)
+    )
 
 
 @app.get("/gst/{user_id}")
@@ -1015,6 +1059,15 @@ def trigger_drl_route(payload: DRLPayload):
     return trigger_drl_if_missing_invoice(payload.user_id, payload.threshold_amount)
 
 
+@app.post("/compliance/calendar/notify/{user_id}")
+def notify_calendar_route(user_id: str):
+    """
+    Trigger automated WhatsApp/Email notifications with OpenAI insights 
+    for upcoming deadlines.
+    """
+    return trigger_deadline_notifications(user_id)
+
+
 @app.post("/compliance/calendar/auto/{user_id}")
 def auto_schedule_calendar_from_transactions_route(user_id: str):
     """
@@ -1047,14 +1100,50 @@ def auto_schedule_calendar_from_transactions_route(user_id: str):
 
 @app.get("/compliance/calendar/{user_id}")
 def get_compliance_calendar_route(user_id: str):
+    """
+    Get the scheduled compliance calendar for a user.
+    Returns calendar document and upcoming reminders for UI display.
+    """
+    from pocket_cfo_parser.db.mongo import compliance_calendar_collection
     doc = compliance_calendar_collection.find_one({"user_id": user_id})
     if not doc:
-        return {"user_id": user_id, "status": "not_found", "calendar": None}
-    doc["_id"] = str(doc.get("_id"))
-    reminders = doc.get("reminders", []) or []
-    today = datetime.now().date().isoformat()
-    upcoming = sorted([r for r in reminders if (r.get("reminder_date") or "") >= today], key=lambda r: r.get("reminder_date", ""))[:10]
-    return {"user_id": user_id, "status": "ok", "calendar": doc, "upcoming": upcoming}
+        return {"user_id": user_id, "message": "No calendar scheduled. Use /compliance/calendar/auto/{user_id} to create one."}
+    
+    # Convert MongoDB document to JSON-serializable dict
+    calendar = {
+        "user_id": doc.get("user_id"),
+        "entity_type": doc.get("entity_type"),
+        "financial_year_end": doc.get("financial_year_end"),
+        "reminders": doc.get("reminders", []),
+        "created_at": doc.get("created_at"),
+    }
+    
+    # Get upcoming reminders (next 30 days)
+    today = datetime.now().date()
+    upcoming = []
+    for r in doc.get("reminders", []):
+        reminder_date = datetime.fromisoformat(r["reminder_date"]).date()
+        if reminder_date >= today and (reminder_date - today).days <= 30:
+            upcoming.append(r)
+    
+    # Sort by reminder date
+    upcoming.sort(key=lambda x: x["reminder_date"])
+    
+    return {
+        "user_id": user_id,
+        "calendar": calendar,
+        "upcoming": upcoming[:10],  # Top 10 upcoming
+        "total_reminders": len(doc.get("reminders", []))
+    }
+
+
+@app.get("/compliance/calendar/{user_id}/events")
+def get_compliance_calendar_events_route(user_id: str):
+    """
+    Returns compliance deadlines formatted as calendar events for UI display.
+    Useful for integrating with calendar widgets or scheduling apps.
+    """
+    return get_compliance_calendar_events(user_id)
 
 
 @app.get("/reports/generate-all/{user_id}")
