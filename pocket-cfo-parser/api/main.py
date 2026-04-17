@@ -4,19 +4,19 @@ dynamically into distinct operational HTTP intelligence endpoints securely.
 """
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 # Automatically bind the project root to the Python path avoiding module import errors
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tempfile
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Imports from pocket_cfo_parser core logic
 from pocket_cfo_parser.ingestion import ingest_sms, ingest_pdf
-from pocket_cfo_parser.db.mongo import get_transactions_by_user, save_user
+from pocket_cfo_parser.db.mongo import get_transactions_by_user, save_user, save_transaction
 from pocket_cfo_parser.models.transaction import Transaction
 from pocket_cfo_parser.agents.expense_agent import get_expense_summary
 from pocket_cfo_parser.agents.profit_agent_v2 import get_profit_summary as get_profit_summary_v2
@@ -174,29 +174,69 @@ def insights_route(user_id: str):
     expense_data = get_expense_summary(txns)
     tax_data = get_tax_insights(txns)
     
+    expense_by_category = expense_data.get("categories", {})
+    top_expense_categories = {
+        cat: values.get("total_spent", 0.0)
+        for cat, values in sorted(
+            expense_by_category.items(),
+            key=lambda item: item[1].get("total_spent", 0.0),
+            reverse=True
+        )[:5]
+    }
+    # Keep both old and new keys so frontend pages remain stable.
+    profit_overall = profit_data.get("overall", {})
+    profit_compat = {
+        "total_revenue": profit_overall.get("total_revenue", 0.0),
+        "total_expenses": profit_overall.get("total_expenses", 0.0),
+        "net_profit": profit_overall.get("net_profit", 0.0),
+        "profit_margin": profit_overall.get("profit_margin_percent", 0.0),
+        "summary": profit_overall.get("verdict", "No profit summary available."),
+        "revenue_transactions": profit_overall.get("revenue_transactions", 0),
+        "expense_transactions": profit_overall.get("expense_transactions", 0),
+        "total_gst_paid": profit_overall.get("total_gst_paid", 0.0),
+        "total_itc_claimable": profit_overall.get("total_itc_claimable", 0.0),
+        "effective_tax_rate": (
+            round(
+                (profit_overall.get("total_gst_paid", 0.0) / profit_overall.get("total_expenses", 1.0)) * 100,
+                2
+            ) if profit_overall.get("total_expenses", 0.0) > 0 else 0.0
+        ),
+        "itc_tip": (
+            f"Potential ITC recovery is ₹{profit_overall.get('total_itc_claimable', 0.0):,.2f}."
+            if profit_overall.get("total_itc_claimable", 0.0) > 0
+            else "No major ITC recovery opportunity found for current data."
+        )
+    }
+    expense_compat = {
+        "total_expenses": expense_data.get("total_expenses", 0.0),
+        "by_category": {
+            cat: values.get("total_spent", 0.0)
+            for cat, values in expense_by_category.items()
+        },
+        "top_category": expense_data.get("top_category"),
+        "anomalies": expense_data.get("anomalies", []),
+        "anomaly_count": expense_data.get("anomaly_count", 0),
+        "insight": expense_data.get("insight", "")
+    }
+
     return {
         "user_id": user_id,
         "financial_overview": {
             "period": "Last 30 days",
-            "net_profit": profit_data["overall"]["net_profit"],
-            "total_revenue": profit_data["overall"]["total_revenue"],
-            "total_expenses": profit_data["overall"]["total_expenses"],
-            "profit_margin_percent": profit_data["overall"]["profit_margin_percent"],
-            "transactions_processed": profit_data["overall"]["transaction_count"]
+            "net_profit": profit_overall.get("net_profit", 0.0),
+            "total_revenue": profit_overall.get("total_revenue", 0.0),
+            "total_expenses": profit_overall.get("total_expenses", 0.0),
+            "profit_margin_percent": profit_overall.get("profit_margin_percent", 0.0),
+            "transactions_processed": profit_overall.get("transaction_count", 0)
         },
-        "top_expense_categories": {
-            cat: data["total_expenses"]
-            for cat, data in sorted(
-                expense_data.get("by_category", {}).items(),
-                key=lambda x: x[1]["total_spent"],
-                reverse=True
-            )[:5]
-        },
+        "top_expense_categories": top_expense_categories,
         "tax_opportunities": {
             "potential_monthly_savings": tax_data["summary"]["potential_savings_per_month"],
             "quick_wins": tax_data["quick_wins"],
             "total_action_items": tax_data["summary"]["total_action_items"]
         },
+        "expense_summary": expense_compat,
+        "profit_summary": profit_compat,
         "generated_at": datetime.now().isoformat()
     }
 
@@ -444,6 +484,321 @@ def actions_route(user_id: str):
     return {
         "actions": actions,
         "user_id": user_id
+    }
+
+
+@app.post("/seed/demo/{user_id}")
+def seed_demo_data_route(user_id: str, months: int = Query(default=6, ge=1, le=12)):
+    """
+    Seed deterministic demo transactions for hackathon testing.
+    Useful for tax, audit, reconciliation, and trend views.
+    """
+    now = datetime.now()
+    saved = 0
+    txns: list[Transaction] = []
+
+    for m in range(months):
+        month_offset = (months - 1) - m
+        base_date = now.replace(day=10) - timedelta(days=30 * month_offset)
+        month_tag = base_date.strftime("%b-%Y")
+
+        # Revenue credits
+        txns.extend([
+            Transaction(
+                amount=85000 + (m * 2200),
+                type="credit",
+                party="Retail Sales",
+                date=base_date.replace(day=3, hour=10, minute=0, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"UPI credit from sales batch {month_tag}",
+                category="Sales Income",
+                sub_category="Retail",
+                business_nature="business",
+                confidence=0.96
+            ),
+            Transaction(
+                amount=22000 + (m * 900),
+                type="credit",
+                party="Online Orders",
+                date=base_date.replace(day=7, hour=15, minute=15, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"UPI credit online settlement {month_tag}",
+                category="Sales Income",
+                sub_category="Online",
+                business_nature="business",
+                confidence=0.94
+            ),
+        ])
+
+        # Operating debits with GST mix
+        txns.extend([
+            Transaction(
+                amount=16000 + (m * 400),
+                type="debit",
+                party="Warehouse Rent",
+                date=base_date.replace(day=5, hour=9, minute=0, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Rent payment {month_tag}",
+                category="Rent & Real Estate",
+                sub_category="Rent",
+                business_nature="business",
+                gst_rate=18.0,
+                itc_eligible=True,
+                hsn_sac="9972",
+                gst_amount=round((16000 + (m * 400)) * 18 / 118, 2),
+                itc_amount=round((16000 + (m * 400)) * 18 / 118, 2),
+                matched_rule="rent",
+                confidence=0.93
+            ),
+            Transaction(
+                amount=12500 + (m * 350),
+                type="debit",
+                party="Porter Logistics",
+                date=base_date.replace(day=12, hour=13, minute=0, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Logistics expense {month_tag}",
+                category="Logistics",
+                sub_category="Courier & Delivery",
+                business_nature="business",
+                gst_rate=18.0,
+                itc_eligible=True,
+                hsn_sac="9967",
+                gst_amount=round((12500 + (m * 350)) * 18 / 118, 2),
+                itc_amount=round((12500 + (m * 350)) * 18 / 118, 2),
+                matched_rule="porter",
+                confidence=0.91
+            ),
+            Transaction(
+                amount=6800 + (m * 180),
+                type="debit",
+                party="Airtel Business",
+                date=base_date.replace(day=15, hour=11, minute=30, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Telecom recharge {month_tag}",
+                category="Telecommunications",
+                sub_category="Internet",
+                business_nature="business",
+                gst_rate=18.0,
+                itc_eligible=True,
+                hsn_sac="9984",
+                gst_amount=round((6800 + (m * 180)) * 18 / 118, 2),
+                itc_amount=round((6800 + (m * 180)) * 18 / 118, 2),
+                matched_rule="airtel",
+                confidence=0.89
+            ),
+            Transaction(
+                amount=5400 + (m * 120),
+                type="debit",
+                party="Swiggy",
+                date=base_date.replace(day=18, hour=14, minute=0, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Food expense {month_tag}",
+                category="Food & Beverage",
+                sub_category="Team Meals",
+                business_nature="business",
+                gst_rate=5.0,
+                itc_eligible=False,
+                hsn_sac="9963",
+                gst_amount=round((5400 + (m * 120)) * 5 / 105, 2),
+                itc_amount=0.0,
+                matched_rule="swiggy",
+                confidence=0.87
+            ),
+            Transaction(
+                amount=4200 + (m * 140),
+                type="debit",
+                party="Term Insurance Premium",
+                date=base_date.replace(day=19, hour=10, minute=15, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Insurance premium {month_tag}",
+                category="Financial Services",
+                sub_category="Insurance",
+                business_nature="personal",
+                gst_rate=18.0,
+                itc_eligible=False,
+                hsn_sac="9971",
+                gst_amount=round((4200 + (m * 140)) * 18 / 118, 2),
+                itc_amount=0.0,
+                matched_rule="insurance",
+                confidence=0.9
+            ),
+            Transaction(
+                amount=3600 + (m * 100),
+                type="debit",
+                party="Education Course Platform",
+                date=base_date.replace(day=22, hour=12, minute=5, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Education spend {month_tag}",
+                category="Education",
+                sub_category="Skill Development",
+                business_nature="personal",
+                gst_rate=18.0,
+                itc_eligible=False,
+                hsn_sac="9992",
+                gst_amount=round((3600 + (m * 100)) * 18 / 118, 2),
+                itc_amount=0.0,
+                matched_rule="education",
+                confidence=0.88
+            ),
+            Transaction(
+                amount=5000 + (m * 160),
+                type="debit",
+                party="Mutual Fund SIP",
+                date=base_date.replace(day=24, hour=9, minute=30, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Investment SIP {month_tag}",
+                category="Investments",
+                sub_category="Mutual Funds",
+                business_nature="personal",
+                gst_rate=18.0,
+                itc_eligible=False,
+                hsn_sac="9971",
+                gst_amount=round((5000 + (m * 160)) * 18 / 118, 2),
+                itc_amount=0.0,
+                matched_rule="mutual-fund",
+                confidence=0.9
+            ),
+            Transaction(
+                amount=7600 + (m * 250),
+                type="debit",
+                party="Fuel Station",
+                date=base_date.replace(day=21, hour=18, minute=0, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Fuel bill {month_tag}",
+                category="Fuel",
+                sub_category="Transport Fuel",
+                business_nature="business",
+                gst_rate=0.0,
+                itc_eligible=False,
+                hsn_sac="EXEMPT",
+                gst_amount=0.0,
+                itc_amount=0.0,
+                matched_rule="fuel",
+                confidence=0.84
+            ),
+        ])
+
+        # Low-confidence and anomaly-style debits for audit/reconciliation testing
+        txns.append(
+            Transaction(
+                amount=41500 if m % 2 == 0 else 28900,
+                type="debit",
+                party="Unknown Vendor",
+                date=base_date.replace(day=26, hour=16, minute=10, second=0, microsecond=0),
+                source="sms",
+                raw_text=f"Misc expense {month_tag}",
+                category="General Business Expense",
+                sub_category="General",
+                business_nature="business",
+                gst_rate=18.0,
+                itc_eligible=False,
+                hsn_sac="UNKNOWN",
+                gst_amount=0.0,
+                itc_amount=0.0,
+                matched_rule="fallback",
+                confidence=0.32
+            )
+        )
+
+    for txn in txns:
+        result = save_transaction(txn, user_id)
+        if result is not None:
+            saved += 1
+
+    return {
+        "user_id": user_id,
+        "seeded_transactions": saved,
+        "months_covered": months,
+        "message": "Demo data seeded successfully. You can now test tax, audit, reconciliation, and income tax agents."
+    }
+
+
+@app.get("/what-if/{user_id}")
+def what_if_route(
+    user_id: str,
+    expense_category: str = Query(default=""),
+    reduction_percent: float = Query(default=10.0, ge=0.0, le=100.0),
+    revenue_increase_percent: float = Query(default=0.0, ge=0.0, le=100.0)
+):
+    """
+    Lightweight simulation for hackathon demos.
+    Estimates net-profit impact if expense category spend is reduced and/or revenue grows.
+    """
+    txns = _fetch_user_transactions(user_id)
+    if not txns:
+        return {
+            "user_id": user_id,
+            "scenario": {
+                "expense_category": expense_category or "All Categories",
+                "reduction_percent": reduction_percent,
+                "revenue_increase_percent": revenue_increase_percent
+            },
+            "message": "No transactions available for simulation.",
+            "baseline": {},
+            "simulation": {},
+            "impact": {}
+        }
+
+    baseline = get_profit_summary_v2(txns).get("overall", {})
+    expense_data = get_expense_summary(txns)
+    categories = expense_data.get("categories", {})
+
+    base_revenue = baseline.get("total_revenue", 0.0)
+    base_expenses = baseline.get("total_business_expenses", baseline.get("total_expenses", 0.0))
+    base_itc = baseline.get("total_itc_claimable", 0.0)
+    base_net = baseline.get("net_profit", 0.0)
+
+    selected_category = expense_category.strip()
+    matched_category = None
+    if selected_category:
+        for cat in categories:
+            if cat.lower() == selected_category.lower():
+                matched_category = cat
+                break
+
+    reduction_base = 0.0
+    if matched_category:
+        reduction_base = categories.get(matched_category, {}).get("total_spent", 0.0)
+    else:
+        reduction_base = sum(values.get("total_spent", 0.0) for values in categories.values())
+        matched_category = "All Categories"
+
+    expense_reduction = round(reduction_base * (reduction_percent / 100), 2)
+    revenue_increase = round(base_revenue * (revenue_increase_percent / 100), 2)
+
+    simulated_revenue = round(base_revenue + revenue_increase, 2)
+    simulated_expenses = round(max(base_expenses - expense_reduction, 0.0), 2)
+    simulated_net = round(simulated_revenue - simulated_expenses + base_itc, 2)
+    simulated_margin = round((simulated_net / simulated_revenue * 100), 2) if simulated_revenue > 0 else 0.0
+
+    return {
+        "user_id": user_id,
+        "scenario": {
+            "expense_category": matched_category,
+            "reduction_percent": reduction_percent,
+            "revenue_increase_percent": revenue_increase_percent
+        },
+        "baseline": {
+            "revenue": round(base_revenue, 2),
+            "expenses": round(base_expenses, 2),
+            "itc_claimable": round(base_itc, 2),
+            "net_profit": round(base_net, 2),
+            "profit_margin_percent": round(baseline.get("profit_margin_percent", 0.0), 2)
+        },
+        "simulation": {
+            "revenue": simulated_revenue,
+            "expenses": simulated_expenses,
+            "itc_claimable": round(base_itc, 2),
+            "net_profit": simulated_net,
+            "profit_margin_percent": simulated_margin
+        },
+        "impact": {
+            "expense_reduction_amount": expense_reduction,
+            "revenue_increase_amount": revenue_increase,
+            "net_profit_delta": round(simulated_net - base_net, 2),
+            "margin_delta": round(simulated_margin - baseline.get("profit_margin_percent", 0.0), 2)
+        },
+        "generated_at": datetime.now().isoformat()
     }
 
 

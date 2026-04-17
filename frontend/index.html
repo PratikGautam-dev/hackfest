@@ -866,6 +866,9 @@
     <a onclick="navigate('actions')" id="nav-actions">
       <span class="nav-icon">⚡</span> Action Cards
     </a>
+    <a onclick="navigate('what-if')" id="nav-what-if">
+      <span class="nav-icon">🧮</span> What-If Simulator
+    </a>
 
     <div class="nav-section">Agents</div>
     <a onclick="navigate('expense-agent')" id="nav-expense-agent">
@@ -949,6 +952,11 @@
               <div style="min-width:24px; height:24px; border-radius:50%; background:var(--amber); color:#000; display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">4</div>
               <div class="text-muted">Explore <b style="color:var(--text);">Action Cards, Insights</b> and <b style="color:var(--text);">GST Analyzer</b> to validate agent logic.</div>
             </div>
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-primary" onclick="runFullDemoJourney()">🎬 Run Full Demo Journey</button>
+            <button class="btn btn-ghost" onclick="seedDemoForCurrentUser()">🌱 Seed Demo Data</button>
+            <button class="btn btn-ghost" onclick="downloadCABrief()">⬇️ Download CA Brief</button>
           </div>
         </div>
       </div>
@@ -1207,6 +1215,10 @@
             <div id="insights-raw" class="response-body"></div>
           </div>
         </div>
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title"><span class="icon">📉</span> Trend Intelligence</div>
+          <div id="trend-content"><div class="empty-state">Run Insights to see trend analytics</div></div>
+        </div>
       </div>
     </section>
 
@@ -1247,6 +1259,71 @@
 
       <div id="actions-list">
         <div class="empty-state"><div class="icon">⚡</div>Fetch actions to see AI-generated alerts</div>
+      </div>
+    </section>
+
+    <!-- ── WHAT-IF SIMULATOR ── -->
+    <section class="section" id="section-what-if">
+      <div class="page-header">
+        <h1>What-If Simulator</h1>
+        <p>Simulate how cost cuts or revenue growth can improve net profit before you act.</p>
+      </div>
+
+      <div class="card mb-2">
+        <div class="grid-3">
+          <div>
+            <label>User ID</label>
+            <input type="text" id="sim-uid" placeholder="backend_user_id" />
+          </div>
+          <div>
+            <label>Expense Category (optional)</label>
+            <input type="text" id="sim-category" placeholder="e.g. Logistics (blank = all categories)" />
+          </div>
+          <div>
+            <label>Expense Reduction %</label>
+            <input type="number" id="sim-reduction" min="0" max="100" value="10" />
+          </div>
+        </div>
+        <div class="grid-3 mt-2">
+          <div>
+            <label>Revenue Increase %</label>
+            <input type="number" id="sim-revenue" min="0" max="100" value="5" />
+          </div>
+          <div style="display:flex; align-items:end;">
+            <button class="btn btn-primary" onclick="runWhatIfSimulation()">🧮 Run Simulation</button>
+          </div>
+          <div class="text-muted" style="font-size:0.8rem; display:flex; align-items:end;">
+            Estimate impact on net profit and margin instantly.
+          </div>
+        </div>
+      </div>
+
+      <div id="sim-grid" class="grid-3" style="display:none;">
+        <div class="metric-card indigo">
+          <div class="metric-label">Baseline Net Profit</div>
+          <div class="metric-value" id="sim-base-net">₹0</div>
+          <div class="metric-sub" id="sim-base-margin">Margin 0%</div>
+        </div>
+        <div class="metric-card emerald">
+          <div class="metric-label">Simulated Net Profit</div>
+          <div class="metric-value" id="sim-new-net">₹0</div>
+          <div class="metric-sub" id="sim-new-margin">Margin 0%</div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">Projected Improvement</div>
+          <div class="metric-value" id="sim-delta-net">₹0</div>
+          <div class="metric-sub" id="sim-delta-margin">Margin delta 0%</div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title"><span class="icon">💡</span> Business Recommendation</div>
+          <div id="sim-reco" class="text-muted">Run a simulation to get recommendation.</div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title"><span class="icon">📦</span> Raw API Response</div>
+          <div class="response-panel" style="max-height:260px;">
+            <div id="sim-raw" class="response-body"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1625,6 +1702,8 @@
               <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/transactions/{id}</td><td>DB</td><td class="text-muted">Fetch all user transactions</td></tr>
               <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/insights/{id}</td><td>Expense + Profit Agent</td><td class="text-muted">Financial summaries</td></tr>
               <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/actions/{id}</td><td>All Agents + GST</td><td class="text-muted">Prioritized action cards</td></tr>
+              <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/what-if/{id}</td><td>Scenario Engine</td><td class="text-muted">Profit impact simulation</td></tr>
+              <tr><td><span class="badge badge-debit">POST</span></td><td class="text-mono">/seed/demo/{id}</td><td>Demo Seeder</td><td class="text-muted">Populate realistic test data</td></tr>
               <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/bookkeeping/{id}</td><td>Bookkeeping Agent</td><td class="text-muted">Ledger-ready bookkeeping summary</td></tr>
               <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/financial-statements/{id}</td><td>Financial Statements</td><td class="text-muted">P&L, Balance Sheet, Cash Flow</td></tr>
               <tr><td><span class="badge badge-credit">GET</span></td><td class="text-mono">/income-tax/{id}</td><td>Income Tax Agent</td><td class="text-muted">Taxable income estimate and liability</td></tr>
@@ -1670,7 +1749,7 @@
     document.getElementById('nav-' + page).classList.add('active');
 
     // auto‑fill uid inputs
-    const uidInputs = ['sms-uid','pdf-uid','txn-uid','ins-uid','act-uid','itc-uid','book-uid','fs-uid','tax-uid','rec-uid','audit-uid'];
+    const uidInputs = ['sms-uid','pdf-uid','txn-uid','ins-uid','act-uid','itc-uid','book-uid','fs-uid','tax-uid','rec-uid','audit-uid','sim-uid'];
     uidInputs.forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.value && USER_ID) el.value = USER_ID;
@@ -2021,9 +2100,13 @@
     document.getElementById('insights-grid').style.display = 'none';
     try {
       const r = await fetch(API + '/insights/' + uid);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
-      renderExpenseSummary(data.expense_summary || {}, 'expense-content');
-      renderProfitSummary(data.profit_summary || {}, 'profit-content');
+      const expenseSummary = data.expense_summary || data.top_expense_categories || {};
+      const profitSummary = data.profit_summary || data.financial_overview || {};
+      renderExpenseSummary(expenseSummary, 'expense-content');
+      renderProfitSummary(profitSummary, 'profit-content');
+      renderTrendSummary(data, allTxns);
       document.getElementById('insights-raw').textContent = JSON.stringify(data, null, 2);
       document.getElementById('insights-grid').style.display = 'grid';
       showToast('Insights loaded from agents', 'success');
@@ -2042,10 +2125,12 @@
     document.getElementById('exp-metrics').style.display = 'none';
     try {
       const r = await fetch(API + '/expenses/' + uid);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
+      const categories = data.categories || data.by_category || {};
       
       const total = data.total_expenses || 0;
-      const count = data.transaction_count || 0;
+      const count = data.transaction_count || Object.values(categories).reduce((sum, cat) => sum + (cat.transaction_count || 0), 0);
       const top = data.top_category || 'None';
       const anomCount = data.anomaly_count || 0;
       
@@ -2057,7 +2142,7 @@
         <div class="metric-card indigo" style="grid-column: span 1;"><div class="metric-label">Agent Insight</div><div style="font-size:0.85rem; line-height:1.4; margin-top:8px;">${data.insight}</div></div>
       `;
       
-      renderExpenseSummary(data, 'exp-categories');
+      renderExpenseSummary({ ...data, by_category: categories }, 'exp-categories');
       
       const anomEl = document.getElementById('exp-anomalies');
       if (anomCount === 0) {
@@ -2090,30 +2175,35 @@
     document.getElementById('pro-metrics').style.display = 'none';
     try {
       const r = await fetch(API + '/profit/' + uid);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
-      
-      const rev = data.total_revenue || 0;
-      const exp = data.total_expenses || 0;
-      const net = data.net_profit || 0;
-      const itc = data.total_itc_claimable || 0;
+      const overall = data.overall || data;
+      const rev = overall.total_revenue || 0;
+      const exp = overall.total_expenses || 0;
+      const net = overall.net_profit || 0;
+      const itc = overall.total_itc_claimable || 0;
+      const effectiveTaxRate = overall.total_expenses > 0 ? ((overall.total_gst_paid || 0) / overall.total_expenses) * 100 : 0;
+      const itcTip = itc > 0
+        ? `You can recover ₹${itc.toLocaleString('en-IN', { maximumFractionDigits: 2 })} through ITC.`
+        : 'No major ITC opportunity identified in current dataset.';
       
       document.getElementById('pro-metrics').style.display = 'grid';
       document.getElementById('pro-metrics').innerHTML = `
-        <div class="metric-card emerald"><div class="metric-label">Revenue</div><div class="metric-value">₹${rev.toLocaleString('en-IN')}</div><div class="metric-sub">${data.revenue_transactions} credits</div></div>
-        <div class="metric-card rose"><div class="metric-label">Expenses</div><div class="metric-value">₹${exp.toLocaleString('en-IN')}</div><div class="metric-sub">${data.expense_transactions} debits</div></div>
+        <div class="metric-card emerald"><div class="metric-label">Revenue</div><div class="metric-value">₹${rev.toLocaleString('en-IN')}</div><div class="metric-sub">${overall.revenue_transactions || 0} credits</div></div>
+        <div class="metric-card rose"><div class="metric-label">Expenses</div><div class="metric-value">₹${exp.toLocaleString('en-IN')}</div><div class="metric-sub">${overall.expense_transactions || 0} debits</div></div>
         <div class="metric-card amber"><div class="metric-label">ITC Recovery</div><div class="metric-value">₹${itc.toLocaleString('en-IN')}</div><div class="metric-sub">Claimable Input Tax</div></div>
         <div class="metric-card ${net>=0?'emerald':'rose'}"><div class="metric-label">Net Profit</div><div class="metric-value">₹${Math.abs(net).toLocaleString('en-IN')}</div><div class="metric-sub">${net>=0?'Profitable':'Operating at a loss'}</div></div>
       `;
       
-      renderProfitSummary(data, 'pro-breakdown');
+      renderProfitSummary(overall, 'pro-breakdown');
       
       document.getElementById('pro-gst').innerHTML = `
-        <div class="insight-row"><b>Total GST Paid</b><b style="color:var(--rose);">₹${(data.total_gst_paid || 0).toLocaleString('en-IN')}</b></div>
+        <div class="insight-row"><b>Total GST Paid</b><b style="color:var(--rose);">₹${(overall.total_gst_paid || 0).toLocaleString('en-IN')}</b></div>
         <div class="insight-row"><b>Claimable ITC</b><b style="color:var(--emerald);">₹${itc.toLocaleString('en-IN')}</b></div>
-        <div class="insight-row"><span>Effective Tax Rate</span><span class="text-mono">${(data.effective_tax_rate || 0).toFixed(1)}%</span></div>
+        <div class="insight-row"><span>Effective Tax Rate</span><span class="text-mono">${effectiveTaxRate.toFixed(1)}%</span></div>
         <div class="action-card ${itc>0?'green':'amber'} mt-2" style="border:none;">
           <div class="action-priority">Agent Verdict</div>
-          <div class="action-msg">${data.itc_tip}</div>
+          <div class="action-msg">${itcTip}</div>
         </div>
       `;
       
@@ -2246,15 +2336,16 @@
   function renderExpenseSummary(exp, targetId = 'expense-content') {
     const el = document.getElementById(targetId);
     if (!exp || !Object.keys(exp).length) { el.innerHTML = '<div class="empty-state">No expense data yet</div>'; return; }
-    const cats = exp.by_category || {};
+    const cats = exp.by_category || exp.categories || {};
     const total = exp.total_expenses || 0;
     const catRows = Object.entries(cats).map(([k, v]) => {
-      const pct = total > 0 ? Math.round((v / total) * 100) : 0;
+      const amount = typeof v === 'number' ? v : (v.total_spent || 0);
+      const pct = total > 0 ? Math.round((amount / total) * 100) : 0;
       return `<div class="insight-row">
         <div>${k}</div>
         <div style="display:flex; align-items:center; gap:10px;">
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%; background:var(--amber);"></div></div>
-          <span class="text-mono" style="color:var(--amber);">₹${v.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+          <span class="text-mono" style="color:var(--amber);">₹${amount.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
         </div>
       </div>`;
     }).join('');
@@ -2283,9 +2374,171 @@
           ${(pro.net_profit||0)>=0?'▲':'▼'} ₹${Math.abs(pro.net_profit||0).toLocaleString('en-IN',{maximumFractionDigits:0})}
         </b>
       </div>
-      <div class="insight-row"><span>Profit Margin</span><span style="color:${netColor};">${(pro.profit_margin||0).toFixed(1)}%</span></div>
+      <div class="insight-row"><span>Profit Margin</span><span style="color:${netColor};">${(pro.profit_margin || pro.profit_margin_percent || 0).toFixed(1)}%</span></div>
       <div class="insight-row"><span class="text-muted">Summary</span></div>
-      <div style="font-size:0.82rem; color:var(--muted); margin-top:4px; line-height:1.5;">${pro.summary || '—'}</div>`;
+      <div style="font-size:0.82rem; color:var(--muted); margin-top:4px; line-height:1.5;">${pro.summary || pro.verdict || '—'}</div>`;
+  }
+
+  function formatCurrency(v) {
+    return `₹${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  }
+
+  function safeNum(v, fallback = 0) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function renderTrendSummary(insightData, txns = []) {
+    const el = document.getElementById('trend-content');
+    if (!el) return;
+    const transactions = Array.isArray(txns) ? txns : [];
+    const debits = transactions.filter(t => t.type === 'debit');
+    const monthly = {};
+    debits.forEach(t => {
+      const d = new Date(t.date);
+      if (Number.isNaN(d.getTime())) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthly[key] = (monthly[key] || 0) + Number(t.amount || 0);
+    });
+    const monthEntries = Object.entries(monthly).sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
+    const maxMonthSpend = Math.max(...monthEntries.map(([, amt]) => amt), 1);
+
+    const topCats = Object.entries((insightData && insightData.top_expense_categories) || {})
+      .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+      .slice(0, 5);
+    const maxCatSpend = Math.max(...topCats.map(([, amt]) => Number(amt || 0)), 1);
+
+    if (!monthEntries.length && !topCats.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">📉</div>Not enough data for trend analytics yet</div>';
+      return;
+    }
+
+    const monthBars = monthEntries.map(([month, amt]) => {
+      const pct = Math.max(8, Math.round((amt / maxMonthSpend) * 100));
+      return `<div class="insight-row">
+        <span>${month}</span>
+        <div style="display:flex; align-items:center; gap:8px; flex:1; justify-content:flex-end;">
+          <div class="progress-bar" style="max-width:220px;"><div class="progress-fill" style="width:${pct}%; background:var(--sky);"></div></div>
+          <span class="text-mono">${formatCurrency(amt)}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    const catBars = topCats.map(([cat, amt]) => {
+      const nAmt = Number(amt || 0);
+      const pct = Math.max(8, Math.round((nAmt / maxCatSpend) * 100));
+      return `<div class="insight-row">
+        <span>${cat}</span>
+        <div style="display:flex; align-items:center; gap:8px; flex:1; justify-content:flex-end;">
+          <div class="progress-bar" style="max-width:220px;"><div class="progress-fill" style="width:${pct}%; background:var(--amber);"></div></div>
+          <span class="text-mono">${formatCurrency(nAmt)}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="grid-2">
+        <div>
+          <div class="card-title"><span class="icon">📆</span> Month-over-Month Expense Trend</div>
+          ${monthBars || '<div class="text-muted">No monthly debit data</div>'}
+        </div>
+        <div>
+          <div class="card-title"><span class="icon">🕳️</span> Top Expense Leak Categories</div>
+          ${catBars || '<div class="text-muted">No category data</div>'}
+        </div>
+      </div>`;
+  }
+
+  async function seedDemoForCurrentUser() {
+    const uid = (document.getElementById('cfg-user-id').value.trim() || USER_ID || '').trim();
+    if (!uid) { showToast('Set a User ID in Configuration first', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/seed/demo/${uid}?months=6`, { method: 'POST' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      USER_ID = uid;
+      document.getElementById('cfg-user-id').value = uid;
+      showToast(`Seeded ${data.seeded_transactions || 0} transactions`, 'success');
+    } catch (e) {
+      showToast('Seeding failed: ' + e.message, 'error');
+    }
+  }
+
+  async function runFullDemoJourney() {
+    const uid = (document.getElementById('cfg-user-id').value.trim() || USER_ID || '').trim();
+    if (!uid) { showToast('Set a User ID in Configuration first', 'error'); return; }
+    USER_ID = uid;
+    document.getElementById('m-uid').textContent = uid;
+
+    try {
+      showToast('Seeding demo data…', 'success');
+      const seedResp = await fetch(`${API}/seed/demo/${uid}?months=6`, { method: 'POST' });
+      if (!seedResp.ok) throw new Error(`Seed failed: HTTP ${seedResp.status}`);
+
+      document.getElementById('txn-uid').value = uid;
+      document.getElementById('ins-uid').value = uid;
+      document.getElementById('act-uid').value = uid;
+      document.getElementById('tax-uid').value = uid;
+      document.getElementById('rec-uid').value = uid;
+      document.getElementById('audit-uid').value = uid;
+      document.getElementById('sim-uid').value = uid;
+
+      await fetchTransactions();
+      await fetchInsights();
+      await fetchActions();
+      await fetchIncomeTax();
+      await fetchReconciliation();
+      await fetchAudit();
+      navigate('actions');
+      showToast('Full demo journey is ready', 'success');
+    } catch (e) {
+      showToast('Demo journey failed: ' + e.message, 'error');
+    }
+  }
+
+  async function downloadCABrief() {
+    const uid = (document.getElementById('cfg-user-id').value.trim() || USER_ID || '').trim();
+    if (!uid) { showToast('Set a User ID in Configuration first', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/ca-summary/${uid}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      const s = data.summary || {};
+      const brief = [
+        'POCKET CFO - CA BRIEF',
+        `User ID: ${uid}`,
+        `Generated: ${(new Date()).toISOString()}`,
+        '',
+        'KEY METRICS',
+        `- Net Profit: ${formatCurrency(s.net_profit)}`,
+        `- Revenue: ${formatCurrency(s.total_revenue)}`,
+        `- Expenses: ${formatCurrency(s.total_expenses)}`,
+        `- Profit Margin: ${Number(s.profit_margin || 0).toFixed(2)}%`,
+        `- Potential Monthly Savings: ${formatCurrency(s.potential_monthly_savings)}`,
+        `- GST Payable: ${formatCurrency(s.gst_payable)}`,
+        `- Refund Available: ${formatCurrency(s.refund_available)}`,
+        '',
+        'ACTION FOCUS',
+        ...(Array.isArray(data.action_items) && data.action_items.length
+          ? data.action_items.map((item, i) => `${i + 1}. ${item}`)
+          : ['1. No high-priority actions currently flagged.']),
+        '',
+        'Generated by Pocket CFO Agent'
+      ].join('\n');
+
+      const blob = new Blob([brief], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ca-brief-${uid}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('CA brief downloaded', 'success');
+    } catch (e) {
+      showToast('Failed to download CA brief: ' + e.message, 'error');
+    }
   }
 
   /* ───────────────────────────────────────────────
@@ -2450,11 +2703,9 @@
     const el = document.getElementById('itc-result');
     el.innerHTML = '<div class="text-muted">⏳ Analyzing ITC opportunities…</div>';
     try {
-      const r = await fetch(API + '/insights/' + uid);
-      const data = await r.json();
-      const ins = data.expense_summary || {};
       // pull from actions for ITC data
       const r2 = await fetch(API + '/actions/' + uid);
+      if (!r2.ok) throw new Error(`HTTP ${r2.status}`);
       const d2 = await r2.json();
       const itcAction = (d2.actions || []).find(a => a.title === 'Input Tax Credit Available');
       el.innerHTML = itcAction
@@ -2464,6 +2715,54 @@
     } catch (e) {
       el.innerHTML = `<div class="text-muted">Error: ${e.message}</div>`;
       showToast('Failed', 'error');
+    }
+  }
+
+  async function runWhatIfSimulation() {
+    const uid = document.getElementById('sim-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    const category = document.getElementById('sim-category').value.trim();
+    const reduction = Number(document.getElementById('sim-reduction').value || 0);
+    const revenue = Number(document.getElementById('sim-revenue').value || 0);
+
+    const query = new URLSearchParams({
+      reduction_percent: String(reduction),
+      revenue_increase_percent: String(revenue)
+    });
+    if (category) query.set('expense_category', category);
+
+    try {
+      const r = await fetch(`${API}/what-if/${uid}?${query.toString()}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      if (!data || !data.baseline || !data.simulation || !data.impact) {
+        throw new Error('Unexpected what-if response');
+      }
+
+      const baseNet = Number(data.baseline.net_profit || 0);
+      const newNet = Number(data.simulation.net_profit || 0);
+      const deltaNet = Number(data.impact.net_profit_delta || 0);
+      const deltaMargin = Number(data.impact.margin_delta || 0);
+      const recommendation = deltaNet > 0
+        ? `Projected gain: ₹${deltaNet.toLocaleString('en-IN')} in net profit. Prioritize this scenario for the next cycle.`
+        : 'This scenario does not improve profitability. Try smaller cost cuts in another category or combine with revenue growth.';
+
+      document.getElementById('sim-base-net').textContent = `₹${Math.abs(baseNet).toLocaleString('en-IN')}`;
+      document.getElementById('sim-base-net').style.color = baseNet >= 0 ? 'var(--emerald)' : 'var(--rose)';
+      document.getElementById('sim-base-margin').textContent = `Margin ${Number(data.baseline.profit_margin_percent || 0).toFixed(1)}%`;
+      document.getElementById('sim-new-net').textContent = `₹${Math.abs(newNet).toLocaleString('en-IN')}`;
+      document.getElementById('sim-new-net').style.color = newNet >= 0 ? 'var(--emerald)' : 'var(--rose)';
+      document.getElementById('sim-new-margin').textContent = `Margin ${Number(data.simulation.profit_margin_percent || 0).toFixed(1)}%`;
+      document.getElementById('sim-delta-net').textContent = `${deltaNet >= 0 ? '+' : '-'}₹${Math.abs(deltaNet).toLocaleString('en-IN')}`;
+      document.getElementById('sim-delta-net').style.color = deltaNet >= 0 ? 'var(--emerald)' : 'var(--rose)';
+      document.getElementById('sim-delta-margin').textContent = `Margin delta ${deltaMargin >= 0 ? '+' : ''}${deltaMargin.toFixed(1)}%`;
+      document.getElementById('sim-reco').textContent = recommendation;
+      document.getElementById('sim-raw').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('sim-grid').style.display = 'grid';
+      showToast('What-if simulation ready', 'success');
+    } catch (e) {
+      document.getElementById('sim-grid').style.display = 'none';
+      showToast('What-if simulation failed: ' + e.message, 'error');
     }
   }
 
@@ -2569,31 +2868,34 @@
       const data = await r.json();
       if (!data || !data.income_tax_summary) throw new Error('No tax calculation data');
       
-      const { income_tax_summary: tax_calculation } = data;
+      const { income_tax_summary: taxData } = data;
+      const taxable = taxData.taxable_income_summary || {};
+      const deductions = taxable.deductions || {};
+      const liability = taxData.tax_liability || {};
       
       // Update tax summary
       document.getElementById('tax-summary').innerHTML = `
         <div class="tax-summary">
           <div class="tax-card">
             <div class="tax-label">Gross Income</div>
-            <div class="tax-amount">₹${Number(tax_calculation.gross_total_income || 0).toLocaleString('en-IN')}</div>
+            <div class="tax-amount">₹${safeNum(taxable.gross_total_income).toLocaleString('en-IN')}</div>
           </div>
           <div class="tax-card">
             <div class="tax-label">Deductions</div>
-            <div class="tax-amount">₹${Number(tax_calculation.total_deductions || 0).toLocaleString('en-IN')}</div>
+            <div class="tax-amount">₹${safeNum(deductions.total_deductions).toLocaleString('en-IN')}</div>
           </div>
           <div class="tax-card">
             <div class="tax-label">Taxable Income</div>
-            <div class="tax-amount">₹${Number(tax_calculation.taxable_income || 0).toLocaleString('en-IN')}</div>
+            <div class="tax-amount">₹${safeNum(taxable.taxable_income).toLocaleString('en-IN')}</div>
           </div>
         </div>
         <div class="tax-breakdown">
           <h4>Tax Breakdown</h4>
           <div class="tax-slabs">
-            ${(tax_calculation.tax_breakdown || []).map(slab => `
+            ${(liability.slab_breakdown || []).map(slab => `
               <div class="slab-row">
-                <span>${slab.range}</span>
-                <span>₹${Number(slab.amount).toLocaleString('en-IN')}</span>
+                <span>${safeNum(slab.rate).toFixed(0)}% slab</span>
+                <span>₹${safeNum(slab.tax).toLocaleString('en-IN')}</span>
               </div>
             `).join('')}
           </div>
@@ -2604,11 +2906,11 @@
       document.getElementById('tax-liability').innerHTML = `
         <div class="tax-card primary" style="margin-bottom: 1rem;">
           <div class="tax-label">Tax Liability</div>
-          <div class="tax-amount">₹${Number(tax_calculation.tax_liability || 0).toLocaleString('en-IN')}</div>
+          <div class="tax-amount">₹${safeNum(liability.total_tax_liability).toLocaleString('en-IN')}</div>
         </div>
         <div class="tax-recommendations">
           <h4>Tax Saving Recommendations</h4>
-          ${(tax_calculation.recommendations || []).map(rec => `
+          ${(taxData.tax_planning_advice || []).map(rec => `
             <div class="action-card blue">
               <div class="action-msg">${rec}</div>
             </div>
@@ -2643,37 +2945,43 @@
       if (!data || !data.reconciliation_report) throw new Error('No reconciliation data');
       
       const { reconciliation_report: reconciliation } = data;
+      const issues = reconciliation.issues || {};
+      const summary = issues.summary || {};
+      const duplicates = issues.duplicate_transactions || [];
+      const gaps = issues.gap_alerts || [];
+      const lowConfidence = issues.low_confidence_transactions || [];
       
       // Update issues summary
       document.getElementById('rec-issues').innerHTML = `
         <div class="rec-summary">
           <div class="rec-card">
             <div class="rec-label">Total Transactions</div>
-            <div class="rec-amount">${reconciliation.total_transactions || 0}</div>
+            <div class="rec-amount">${safeNum(summary.duplicate_count) + safeNum(summary.uncategorized_count) + safeNum(summary.low_confidence_count)}</div>
           </div>
           <div class="rec-card">
             <div class="rec-label">Duplicates Found</div>
-            <div class="rec-amount">${reconciliation.duplicates?.length || 0}</div>
+            <div class="rec-amount">${safeNum(summary.duplicate_count)}</div>
           </div>
           <div class="rec-card">
-            <div class="rec-label">Balance Mismatches</div>
-            <div class="rec-amount">${reconciliation.balance_issues?.length || 0}</div>
+            <div class="rec-label">Low Confidence</div>
+            <div class="rec-amount">${safeNum(summary.low_confidence_count)}</div>
           </div>
-          <div class="rec-card ${reconciliation.status === 'clean' ? 'success' : 'warning'}">
+          <div class="rec-card ${safeNum(summary.duplicate_count) === 0 ? 'success' : 'warning'}">
             <div class="rec-label">Status</div>
-            <div class="rec-amount">${reconciliation.status || 'Unknown'}</div>
+            <div class="rec-amount">${safeNum(summary.duplicate_count) === 0 ? 'clean' : 'review'}</div>
           </div>
         </div>
-        ${reconciliation.duplicates?.length ? `
+        ${duplicates.length ? `
           <div class="rec-issues">
             <h4>Duplicate Transactions</h4>
             <div class="issues-list">
-              ${reconciliation.duplicates.slice(0,3).map(dup => `
+              ${duplicates.slice(0,3).map(dup => `
                 <div class="issue-card">
                   <div class="issue-header">Duplicate Transaction</div>
                   <div class="issue-details">
-                    <div>Amount: ₹${Number(dup.amount).toLocaleString('en-IN')}</div>
-                    <div>Description: ${dup.description}</div>
+                    <div>Amount: ₹${safeNum(dup.duplicate_key?.amount).toLocaleString('en-IN')}</div>
+                    <div>Party: ${(dup.duplicate_key?.party || 'N/A')}</div>
+                    <div>Count: ${safeNum(dup.count)}</div>
                   </div>
                 </div>
               `).join('')}
@@ -2684,23 +2992,39 @@
       
       // Update balance check
       document.getElementById('rec-balance').innerHTML = `
-        ${reconciliation.balance_issues?.length ? `
+        ${gaps.length ? `
           <div class="rec-issues">
-            <h4>Balance Issues</h4>
+            <h4>Gap Alerts</h4>
             <div class="issues-list">
-              ${reconciliation.balance_issues.slice(0,3).map(issue => `
+              ${gaps.slice(0,3).map(issue => `
                 <div class="issue-card warning">
-                  <div class="issue-header">Balance Mismatch</div>
+                  <div class="issue-header">Gap Alert</div>
                   <div class="issue-details">
-                    <div>Expected: ₹${Number(issue.expected).toLocaleString('en-IN')}</div>
-                    <div>Actual: ₹${Number(issue.actual).toLocaleString('en-IN')}</div>
-                    <div>Difference: ₹${Number(issue.difference).toLocaleString('en-IN')}</div>
+                    <div>Previous: ${issue.previous_date || '-'}</div>
+                    <div>Current: ${issue.current_date || '-'}</div>
+                    <div>Gap Days: ${safeNum(issue.gap_days)}</div>
                   </div>
                 </div>
               `).join('')}
             </div>
           </div>
-        ` : '<div class="empty-state">No balance issues found</div>'}
+        ` : '<div class="empty-state">No major gap alerts found</div>'}
+        ${lowConfidence.length ? `
+          <div class="rec-issues">
+            <h4>Low Confidence Transactions</h4>
+            <div class="issues-list">
+              ${lowConfidence.slice(0,3).map(item => `
+                <div class="issue-card warning">
+                  <div class="issue-header">${item.party || 'Unknown Party'}</div>
+                  <div class="issue-details">
+                    <div>Amount: ₹${safeNum(item.amount).toLocaleString('en-IN')}</div>
+                    <div>Confidence: ${Math.round(safeNum(item.confidence) * 100)}%</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
         <div class="rec-recommendations">
           <h4>Reconciliation Recommendations</h4>
           ${(reconciliation.recommendations || []).map(rec => `
@@ -2742,34 +3066,37 @@
       if (!data || !data.audit_report) throw new Error('No audit data');
       
       const { audit_report: audit } = data;
+      const gstIssues = audit.gst_validation_issues || [];
+      const suspicious = audit.suspicious_transactions || [];
+      const summary = audit.summary || {};
       
       // Update GST Validation section
       document.getElementById('audit-gst').innerHTML = `
         <div class="audit-summary">
           <div class="audit-card">
-            <div class="audit-label">GST Compliance</div>
-            <div class="audit-amount ${audit.gst_compliance?.status === 'compliant' ? 'success' : 'error'}">${audit.gst_compliance?.status || 'Unknown'}</div>
+            <div class="audit-label">GST Issues</div>
+            <div class="audit-amount ${safeNum(summary.gst_issues_count) === 0 ? 'success' : 'warning'}">${safeNum(summary.gst_issues_count)}</div>
           </div>
           <div class="audit-card">
-            <div class="audit-label">Risk Level</div>
-            <div class="audit-amount ${audit.risk_level === 'low' ? 'success' : audit.risk_level === 'medium' ? 'warning' : 'error'}">${audit.risk_level || 'Unknown'}</div>
+            <div class="audit-label">Suspicious Flags</div>
+            <div class="audit-amount ${safeNum(summary.suspicious_transactions_count) > 0 ? 'warning' : 'success'}">${safeNum(summary.suspicious_transactions_count)}</div>
           </div>
           <div class="audit-card">
             <div class="audit-label">Overall Status</div>
-            <div class="audit-amount ${audit.overall_status === 'passed' ? 'success' : 'error'}">${audit.overall_status || 'Unknown'}</div>
+            <div class="audit-amount ${safeNum(summary.gst_issues_count) + safeNum(summary.suspicious_transactions_count) > 0 ? 'warning' : 'success'}">${safeNum(summary.gst_issues_count) + safeNum(summary.suspicious_transactions_count) > 0 ? 'review' : 'clean'}</div>
           </div>
         </div>
-        ${audit.gst_compliance?.issues?.length ? `
+        ${gstIssues.length ? `
           <div class="audit-issues">
             <h4>GST Compliance Issues</h4>
             <div class="issues-list">
-              ${audit.gst_compliance.issues.map(issue => `
+              ${gstIssues.slice(0, 6).map(issue => `
                 <div class="issue-card error">
                   <div class="issue-header">GST Issue</div>
                   <div class="issue-details">
-                    <div>Type: ${issue.type}</div>
-                    <div>Description: ${issue.description}</div>
-                    <div>Amount: ₹${Number(issue.amount || 0).toLocaleString('en-IN')}</div>
+                    <div>Transaction ID: ${issue.transaction_id || '-'}</div>
+                    <div>Expected GST: ₹${safeNum(issue.expected_gst_amount).toLocaleString('en-IN')}</div>
+                    <div>Detected Issues: ${(issue.issues || []).join(', ') || 'N/A'}</div>
                   </div>
                 </div>
               `).join('')}
@@ -2783,21 +3110,21 @@
         <div class="audit-summary">
           <div class="audit-card">
             <div class="audit-label">Anomalies Detected</div>
-            <div class="audit-amount">${audit.anomalies?.length || 0}</div>
+            <div class="audit-amount">${suspicious.length || 0}</div>
           </div>
         </div>
-        ${audit.anomalies?.length ? `
+        ${suspicious.length ? `
           <div class="audit-issues">
             <h4>Anomalies Detected</h4>
             <div class="issues-list">
-              ${audit.anomalies.map(anomaly => `
+              ${suspicious.slice(0, 8).map(anomaly => `
                 <div class="issue-card warning">
                   <div class="issue-header">Anomaly</div>
                   <div class="issue-details">
-                    <div>Type: ${anomaly.type}</div>
-                    <div>Description: ${anomaly.description}</div>
-                    <div>Severity: ${anomaly.severity}</div>
-                    <div>Transaction ID: ${anomaly.transaction_id}</div>
+                    <div>Issue: ${anomaly.issue || 'Suspicious Pattern'}</div>
+                    <div>Party: ${anomaly.party || anomaly.transaction?.party || 'N/A'}</div>
+                    <div>Amount: ₹${safeNum(anomaly.amount || anomaly.transaction?.amount).toLocaleString('en-IN')}</div>
+                    <div>Type: ${anomaly.type || anomaly.transaction?.type || 'N/A'}</div>
                   </div>
                 </div>
               `).join('')}
