@@ -4,6 +4,7 @@ dynamically into distinct operational HTTP intelligence endpoints securely.
 """
 import os
 import sys
+import json
 from datetime import datetime, timedelta
 # Automatically bind the project root to the Python path avoiding module import errors
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,11 +13,12 @@ import tempfile
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 # Imports from pocket_cfo_parser core logic
 from pocket_cfo_parser.ingestion import ingest_sms, ingest_pdf
-from pocket_cfo_parser.db.mongo import get_transactions_by_user, save_user, save_transaction
+from pocket_cfo_parser.db.mongo import get_transactions_by_user, save_user, save_transaction, compliance_calendar_collection
 from pocket_cfo_parser.models.transaction import Transaction
 from pocket_cfo_parser.agents.expense_agent import get_expense_summary
 from pocket_cfo_parser.agents.profit_agent_v2 import get_profit_summary as get_profit_summary_v2
@@ -146,6 +148,10 @@ class ComplianceCalendarPayload(BaseModel):
 class DRLPayload(BaseModel):
     user_id: str
     threshold_amount: float = 20000.0
+
+
+class ReportAnalyzerPayload(BaseModel):
+    user_id: str
 
 @app.post("/users/create")
 def create_user_route(payload: UserCreatePayload):
@@ -1007,6 +1013,218 @@ def schedule_calendar_route(payload: ComplianceCalendarPayload):
 @app.post("/compliance/drl/trigger")
 def trigger_drl_route(payload: DRLPayload):
     return trigger_drl_if_missing_invoice(payload.user_id, payload.threshold_amount)
+
+
+@app.post("/compliance/calendar/auto/{user_id}")
+def auto_schedule_calendar_from_transactions_route(user_id: str):
+    """
+    Auto-schedule compliance calendar from parsed transaction history.
+    Uses latest transaction date to infer financial year-end (Mar 31) and
+    defaults entity type to pvt_ltd for hackathon demo.
+    """
+    txns = _fetch_user_transactions(user_id)
+    if txns:
+        latest_txn_date = max(t.date for t in txns)
+        fy_year = latest_txn_date.year if latest_txn_date.month <= 3 else latest_txn_date.year + 1
+    else:
+        now = datetime.now()
+        fy_year = now.year if now.month <= 3 else now.year + 1
+
+    fy_end = f"{fy_year}-03-31"
+    result = schedule_compliance_calendar(
+        user_id=user_id,
+        entity_type="pvt_ltd",
+        financial_year_end=fy_end,
+    )
+    return {
+        "user_id": user_id,
+        "derived_from_transactions": True,
+        "entity_type": "pvt_ltd",
+        "financial_year_end": fy_end,
+        "calendar": result,
+    }
+
+
+@app.get("/compliance/calendar/{user_id}")
+def get_compliance_calendar_route(user_id: str):
+    doc = compliance_calendar_collection.find_one({"user_id": user_id})
+    if not doc:
+        return {"user_id": user_id, "status": "not_found", "calendar": None}
+    doc["_id"] = str(doc.get("_id"))
+    reminders = doc.get("reminders", []) or []
+    today = datetime.now().date().isoformat()
+    upcoming = sorted([r for r in reminders if (r.get("reminder_date") or "") >= today], key=lambda r: r.get("reminder_date", ""))[:10]
+    return {"user_id": user_id, "status": "ok", "calendar": doc, "upcoming": upcoming}
+
+
+@app.get("/reports/generate-all/{user_id}")
+def generate_all_reports_route(user_id: str):
+    """
+    Generate all major reports in one API call.
+    """
+    txns = _fetch_user_transactions(user_id)
+    if not txns:
+        return {
+            "user_id": user_id,
+            "generated_at": datetime.now().isoformat(),
+            "status": "no_data",
+            "message": "No transactions found. Ingest SMS/PDF/AA data first.",
+            "reports": {},
+        }
+
+    profit_data = get_profit_summary_v2(txns)
+    expense_data = get_expense_summary(txns)
+    tax_data = get_tax_insights(txns)
+    gst_data = generate_gst_compliance_report(txns)
+    bookkeeping = get_bookkeeping_summary(txns)
+    financial_statements = get_financial_statements(txns)
+    income_tax = get_income_tax_summary(txns)
+    reconciliation = get_reconciliation_report(txns)
+    audit = get_audit_report(txns)
+    actions = actions_route(user_id)
+
+    return {
+        "user_id": user_id,
+        "generated_at": datetime.now().isoformat(),
+        "status": "ok",
+        "reports": {
+            "profit": profit_data,
+            "expenses": expense_data,
+            "tax_savings": tax_data,
+            "gst_report": gst_data,
+            "bookkeeping": bookkeeping,
+            "financial_statements": financial_statements,
+            "income_tax": income_tax,
+            "reconciliation": reconciliation,
+            "audit": audit,
+            "actions": actions,
+        },
+    }
+
+
+@app.get("/reports/download/{user_id}")
+def download_reports_bundle_route(user_id: str, format: str = Query(default="json")):
+    bundle = generate_all_reports_route(user_id)
+    out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "generated")
+    os.makedirs(out_dir, exist_ok=True)
+
+    if format.lower() == "json":
+        filename = f"reports_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        path = os.path.join(out_dir, filename)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(bundle, f, ensure_ascii=False, indent=2)
+        return FileResponse(path, media_type="application/json", filename=filename)
+
+    raise HTTPException(status_code=400, detail="Unsupported format. Use format=json")
+
+
+@app.post("/reports/analyze")
+def analyze_reports_route(payload: ReportAnalyzerPayload):
+    """
+    Analyze generated reports and produce an executive summary with risk score.
+    """
+    bundle = generate_all_reports_route(payload.user_id)
+    if bundle.get("status") != "ok":
+        return {
+            "user_id": payload.user_id,
+            "status": "no_data",
+            "analysis": {
+                "summary": "No report data available to analyze.",
+                "risk_score": 0,
+                "highlights": [],
+                "recommendations": ["Ingest data and generate reports first."],
+            },
+        }
+
+    reports = bundle["reports"]
+    profit_overall = reports.get("profit", {}).get("overall", {})
+    net_profit = float(profit_overall.get("net_profit", 0.0))
+    margin = float(profit_overall.get("profit_margin_percent", 0.0))
+    tax_liability = float(
+        reports.get("income_tax", {})
+        .get("tax_liability", {})
+        .get("total_tax_liability", 0.0)
+    )
+    recon_summary = reports.get("reconciliation", {}).get("issues", {}).get("summary", {})
+    audit_summary = reports.get("audit", {}).get("summary", {})
+    action_cards = reports.get("actions", {}).get("actions", [])
+    critical_actions = len([a for a in action_cards if a.get("priority") == "red"])
+
+    # Simple risk scoring for demo
+    risk_score = 20
+    if net_profit < 0:
+        risk_score += 30
+    if margin < 10:
+        risk_score += 15
+    risk_score += min(20, int(recon_summary.get("low_confidence_count", 0)) * 2)
+    risk_score += min(20, int(audit_summary.get("suspicious_transactions_count", 0)))
+    risk_score += min(15, critical_actions * 5)
+    risk_score = min(100, max(0, risk_score))
+
+    highlights = [
+        f"Net profit: ₹{net_profit:,.2f}",
+        f"Profit margin: {margin:.2f}%",
+        f"Estimated income tax liability: ₹{tax_liability:,.2f}",
+        f"Reconciliation low-confidence items: {recon_summary.get('low_confidence_count', 0)}",
+        f"Audit suspicious transactions: {audit_summary.get('suspicious_transactions_count', 0)}",
+        f"Critical action cards: {critical_actions}",
+    ]
+
+    recommendations: list[str] = []
+    if net_profit < 0:
+        recommendations.append("Prioritize cost reduction and improve receivables to restore profitability.")
+    if recon_summary.get("low_confidence_count", 0) > 0:
+        recommendations.append("Review low-confidence transactions to improve filing accuracy.")
+    if audit_summary.get("gst_issues_count", 0) > 0:
+        recommendations.append("Resolve GST validation issues before filing to avoid notices.")
+    if not recommendations:
+        recommendations.append("Financial and compliance health looks stable. Maintain monthly monitoring.")
+
+    # Optional OpenAI structured analysis augmentation (fallback if not configured)
+    ai = {"executive_summary": "", "top_risks": [], "next_actions": []}
+    try:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            from openai import OpenAI
+
+            client = OpenAI(api_key=api_key)
+            context = {
+                "risk_score": risk_score,
+                "highlights": highlights,
+                "recommendations": recommendations,
+                "profit": reports.get("profit", {}).get("overall", {}),
+                "income_tax": reports.get("income_tax", {}).get("tax_liability", {}),
+                "audit": reports.get("audit", {}).get("summary", {}),
+                "reconciliation": reports.get("reconciliation", {}).get("issues", {}).get("summary", {}),
+                "actions": reports.get("actions", {}).get("actions", [])[:8],
+            }
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                temperature=0.2,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": "You are a CFO-style compliance report analyst for Indian MSMEs. Return JSON only. No fluff."},
+                    {"role": "user", "content": "Given this report context, produce JSON with keys: executive_summary (string, <=80 words), top_risks (array of 3-6 strings), next_actions (array of 3-6 strings).\n\nContext:\n" + json.dumps(context)},
+                ],
+            )
+            ai = json.loads(resp.choices[0].message.content or "{}") or ai
+    except Exception:
+        ai = ai
+
+    return {
+        "user_id": payload.user_id,
+        "status": "ok",
+        "generated_at": datetime.now().isoformat(),
+        "analysis": {
+            "summary": "Pocket CFO report analyzer generated an executive risk and action summary.",
+            "executive_summary": ai.get("executive_summary", "") or "",
+            "top_risks": ai.get("top_risks", []) or [],
+            "next_actions": ai.get("next_actions", []) or [],
+            "risk_score": risk_score,
+            "highlights": highlights,
+            "recommendations": recommendations,
+        },
+    }
 
 
 if __name__ == "__main__":

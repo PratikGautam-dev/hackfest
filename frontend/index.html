@@ -869,6 +869,9 @@
     <a onclick="navigate('what-if')" id="nav-what-if">
       <span class="nav-icon">🧮</span> What-If Simulator
     </a>
+    <a onclick="navigate('reports-hub')" id="nav-reports-hub">
+      <span class="nav-icon">📑</span> Reports Hub
+    </a>
 
     <div class="nav-section">Agents</div>
     <a onclick="navigate('expense-agent')" id="nav-expense-agent">
@@ -1326,6 +1329,83 @@
           <div class="card-title"><span class="icon">📦</span> Raw API Response</div>
           <div class="response-panel" style="max-height:260px;">
             <div id="sim-raw" class="response-body"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── REPORTS HUB ── -->
+    <section class="section" id="section-reports-hub">
+      <div class="page-header">
+        <h1>Reports Hub</h1>
+        <p>Auto-schedule compliance deadlines from parsed data, generate all reports, and analyze them in one click.</p>
+      </div>
+
+      <div class="card mb-2">
+        <div class="flex-gap items-center">
+          <div style="flex:1; max-width:360px;">
+            <label>User ID</label>
+            <input type="text" id="reports-uid" placeholder="backend_user_id" />
+          </div>
+          <div style="padding-top:1.5rem;">
+            <button class="btn btn-primary" onclick="autoScheduleFromParsedData()">📅 Auto Schedule Deadlines</button>
+          </div>
+          <div style="padding-top:1.5rem;">
+            <button class="btn btn-ghost" onclick="viewScheduledCalendar()">🗓️ View Calendar</button>
+          </div>
+          <div style="padding-top:1.5rem;">
+            <button class="btn btn-ghost" onclick="generateAllReports()">📑 Generate All Reports</button>
+          </div>
+          <div style="padding-top:1.5rem;">
+            <button class="btn btn-ghost" onclick="downloadReports()">⬇️ Download Reports</button>
+          </div>
+          <div style="padding-top:1.5rem;">
+            <button class="btn btn-ghost" onclick="analyzeReports()">🧠 Analyze Reports</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-2" id="calendar-card" style="display:none;">
+        <div class="card-title"><span class="icon">🗓️</span> Scheduled Deadlines (Calendar View)</div>
+        <div id="calendar-meta" class="text-muted" style="font-size:0.82rem; margin-bottom:10px;">—</div>
+        <div id="calendar-grid"></div>
+      </div>
+
+      <div class="grid-3 mb-2" id="reports-analysis-metrics" style="display:none;">
+        <div class="metric-card indigo">
+          <div class="metric-label">Risk Score</div>
+          <div class="metric-value" id="ra-risk-score">0</div>
+          <div class="metric-sub">0 (low) to 100 (high)</div>
+        </div>
+        <div class="metric-card emerald">
+          <div class="metric-label">Highlights</div>
+          <div class="metric-value" id="ra-highlights-count">0</div>
+          <div class="metric-sub">Key business findings</div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">Recommendations</div>
+          <div class="metric-value" id="ra-reco-count">0</div>
+          <div class="metric-sub">Priority next actions</div>
+        </div>
+      </div>
+
+      <div class="grid-2" id="reports-analysis-grid" style="display:none;">
+        <div class="card">
+          <div class="card-title"><span class="icon">🔎</span> Report Highlights</div>
+          <div id="ra-highlights"><div class="empty-state">No analysis yet.</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="icon">✅</span> Recommendations</div>
+          <div id="ra-recommendations"><div class="empty-state">No analysis yet.</div></div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title"><span class="icon">📝</span> Executive Summary (AI-assisted)</div>
+          <div id="ra-exec" class="text-muted" style="line-height:1.6;">Run “Analyze Reports” to generate a concise executive summary.</div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title"><span class="icon">📦</span> Reports API Response</div>
+          <div class="response-panel" style="max-height:300px;">
+            <div id="reports-raw" class="response-body"></div>
           </div>
         </div>
       </div>
@@ -1907,7 +1987,7 @@
     document.getElementById('nav-' + page).classList.add('active');
 
     // auto‑fill uid inputs
-    const uidInputs = ['sms-uid','pdf-uid','txn-uid','ins-uid','act-uid','itc-uid','book-uid','fs-uid','tax-uid','rec-uid','audit-uid','sim-uid','comp-uid'];
+    const uidInputs = ['sms-uid','pdf-uid','txn-uid','ins-uid','act-uid','itc-uid','book-uid','fs-uid','tax-uid','rec-uid','audit-uid','sim-uid','comp-uid','reports-uid'];
     uidInputs.forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.value && USER_ID) el.value = USER_ID;
@@ -3222,6 +3302,178 @@
       showToast('Compliance smoke test completed', 'success');
     } catch (e) {
       showToast('Compliance smoke test failed: ' + e.message, 'error');
+    }
+  }
+
+  /* ───────────────────────────────────────────────
+      REPORTS HUB
+  ─────────────────────────────────────────────── */
+  async function autoScheduleFromParsedData() {
+    const uid = document.getElementById('reports-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/compliance/calendar/auto/${uid}`, { method: 'POST' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('reports-analysis-grid').style.display = 'grid';
+      document.getElementById('reports-raw').textContent = JSON.stringify(data, null, 2);
+      showToast('Deadlines scheduled from parsed data', 'success');
+    } catch (e) {
+      showToast('Auto scheduling failed: ' + e.message, 'error');
+    }
+  }
+
+  async function generateAllReports() {
+    const uid = document.getElementById('reports-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/reports/generate-all/${uid}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('reports-analysis-grid').style.display = 'grid';
+      document.getElementById('reports-raw').textContent = JSON.stringify(data, null, 2);
+      showToast(data.status === 'ok' ? 'All reports generated' : (data.message || 'No data found'), data.status === 'ok' ? 'success' : 'error');
+    } catch (e) {
+      showToast('Generate reports failed: ' + e.message, 'error');
+    }
+  }
+
+  async function analyzeReports() {
+    const uid = document.getElementById('reports-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/reports/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: uid })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('reports-analysis-grid').style.display = 'grid';
+      document.getElementById('reports-analysis-metrics').style.display = 'grid';
+      document.getElementById('reports-raw').textContent = JSON.stringify(data, null, 2);
+
+      const analysis = data.analysis || {};
+      const highlights = analysis.highlights || [];
+      const recommendations = analysis.recommendations || [];
+      const exec = analysis.executive_summary || '';
+      const topRisks = analysis.top_risks || [];
+      const nextActions = analysis.next_actions || [];
+      document.getElementById('ra-risk-score').textContent = String(analysis.risk_score || 0);
+      document.getElementById('ra-highlights-count').textContent = String(highlights.length);
+      document.getElementById('ra-reco-count').textContent = String(recommendations.length);
+
+      document.getElementById('ra-highlights').innerHTML = highlights.length
+        ? highlights.map(h => `<div class="action-card indigo"><div class="action-msg">${h}</div></div>`).join('')
+        : '<div class="empty-state">No highlights available</div>';
+      document.getElementById('ra-recommendations').innerHTML = recommendations.length
+        ? recommendations.map(item => `<div class="action-card amber"><div class="action-msg">${item}</div></div>`).join('')
+        : '<div class="empty-state">No recommendations available</div>';
+
+      const execText = exec || 'AI summary not available. Add OPENAI_API_KEY and install openai dependency.';
+      const risksHtml = topRisks.length ? `<div class="mt-2"><div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:.05em;">Top Risks</div>${topRisks.map(r => `<div class="action-card rose"><div class="action-msg">${r}</div></div>`).join('')}</div>` : '';
+      const actionsHtml = nextActions.length ? `<div class="mt-2"><div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:.05em;">Next Actions</div>${nextActions.map(a => `<div class="action-card emerald"><div class="action-msg">${a}</div></div>`).join('')}</div>` : '';
+      document.getElementById('ra-exec').innerHTML = `<div style="color:var(--text); font-weight:600; margin-bottom:6px;">Executive Summary</div><div class="text-muted" style="line-height:1.6;">${execText}</div>${risksHtml}${actionsHtml}`;
+
+      showToast('Report analysis completed', 'success');
+    } catch (e) {
+      showToast('Analyze reports failed: ' + e.message, 'error');
+    }
+  }
+
+  async function downloadReports() {
+    const uid = document.getElementById('reports-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    try {
+      const url = `${API}/reports/download/${uid}?format=json`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('Downloading reports JSON…', 'success');
+    } catch (e) {
+      showToast('Download failed: ' + e.message, 'error');
+    }
+  }
+
+  function buildCalendarHTML(monthDate, eventsByDate) {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const first = new Date(year, month, 1);
+    const startDay = first.getDay(); // 0 Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    const headers = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+      .map(h => `<th style="text-align:left; font-size:0.75rem; color:var(--muted); padding:8px;">${h}</th>`).join('');
+
+    let cells = '';
+    let day = 1;
+    for (let row = 0; row < 6; row++) {
+      let rowHtml = '';
+      for (let col = 0; col < 7; col++) {
+        const idx = row * 7 + col;
+        if (idx < startDay || day > daysInMonth) {
+          rowHtml += `<td style="padding:8px; border:1px solid rgba(255,255,255,0.06); color:var(--muted);"></td>`;
+        } else {
+          const dateStr = `${monthKey}-${String(day).padStart(2, '0')}`;
+          const ev = eventsByDate[dateStr] || [];
+          const dot = ev.length ? `<div style="margin-top:6px; display:flex; gap:4px; flex-wrap:wrap;">${ev.slice(0,3).map(e => `<span class="badge" style="font-size:0.62rem;">${e.form_code}</span>`).join('')}</div>` : '';
+          rowHtml += `<td style="vertical-align:top; padding:8px; border:1px solid rgba(255,255,255,0.06); min-width:110px;">
+            <div style="font-weight:700; font-family:'DM Mono',monospace; font-size:0.85rem;">${day}</div>
+            ${dot}
+          </td>`;
+          day++;
+        }
+      }
+      cells += `<tr>${rowHtml}</tr>`;
+      if (day > daysInMonth) break;
+    }
+
+    return `<div class="text-muted" style="font-size:0.82rem; margin-bottom:8px;">Month: <b style="color:var(--text);">${monthDate.toLocaleString('en-IN',{month:'long'})} ${year}</b></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>${headers}</tr></thead>
+          <tbody>${cells}</tbody>
+        </table>
+      </div>`;
+  }
+
+  async function viewScheduledCalendar() {
+    const uid = document.getElementById('reports-uid').value.trim() || USER_ID;
+    if (!uid) { showToast('Enter a User ID', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/compliance/calendar/${uid}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      const cal = data.calendar;
+      if (!cal) {
+        showToast('No calendar found. Click Auto Schedule first.', 'error');
+        return;
+      }
+
+      const reminders = cal.reminders || [];
+      const eventsByDate = {};
+      reminders.forEach(ev => {
+        const d = ev.reminder_date;
+        if (!eventsByDate[d]) eventsByDate[d] = [];
+        eventsByDate[d].push(ev);
+      });
+      const upcoming = (data.upcoming || []).slice(0, 6);
+      const monthToShow = upcoming.length ? new Date(upcoming[0].reminder_date) : new Date();
+
+      const card = document.getElementById('calendar-card');
+      card.style.display = 'block';
+      document.getElementById('calendar-meta').textContent = `Entity: ${cal.entity_type || '—'} | FY End: ${cal.financial_year_end || '—'} | Total reminders: ${reminders.length}`;
+      const upcomingList = upcoming.length ? `<div class="mt-2"><div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:.05em;">Upcoming Reminders</div>${upcoming.map(u => `<div class="action-card amber"><div class="action-msg"><b>${u.form_code}</b> — ${u.reminder_date} (T-${u.offset_days} days)</div></div>`).join('')}</div>` : '';
+      document.getElementById('calendar-grid').innerHTML = buildCalendarHTML(monthToShow, eventsByDate) + upcomingList;
+      document.getElementById('reports-raw').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('reports-analysis-grid').style.display = 'grid';
+      showToast('Calendar loaded', 'success');
+    } catch (e) {
+      showToast('Calendar view failed: ' + e.message, 'error');
     }
   }
 
