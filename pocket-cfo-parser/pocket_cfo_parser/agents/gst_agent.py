@@ -118,6 +118,7 @@ CATEGORY_METADATA = {
     "Investments": {"business_nature": "personal", "sub_category": "Investments"},
     "Software & Subscriptions": {"business_nature": "business", "sub_category": "Software"},
     "Office Expenses": {"business_nature": "business", "sub_category": "Office Supplies"},
+    "General Business Expense": {"business_nature": "business", "sub_category": "General"},
     "Uncategorized": {"business_nature": "business", "sub_category": "Uncategorized"}
 }
 
@@ -151,7 +152,7 @@ def _classify_with_openai(party: str, amount: float) -> dict:
             temperature=0,
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "You are a GST classification engine for Indian businesses. Respond in JSON only."},
+                {"role": "system", "content": "You are a GST classification engine for Indian businesses. Respond in JSON only. Prefer a best-fit category and avoid Uncategorized unless data is truly unknown."},
                 {"role": "user", "content": f"""Classify the merchant "{party}" (amount: Rs.{amount}) into one of these categories:
 Food & Beverage, Food & Grocery, Transport, Utilities, Healthcare, Retail & E-commerce,
 Software & Subscriptions, Financial Services, Education, Fuel, Payroll,
@@ -169,12 +170,19 @@ Return JSON with exactly these fields:
         )
 
         result = json.loads(response.choices[0].message.content)
+        category = result.get("category", "General Business Expense")
+        if str(category).strip().lower() == "uncategorized":
+            category = "General Business Expense"
+        sub_category = result.get("sub_category", "General")
+        if str(sub_category).strip().lower() == "uncategorized":
+            sub_category = "General"
+
         return {
             "hsn_sac": result.get("hsn_sac", "UNKNOWN"),
             "gst_rate": float(result.get("gst_rate", 18.0)),
             "itc_eligible": bool(result.get("itc_eligible", False)),
-            "category": result.get("category", "Uncategorized"),
-            "sub_category": result.get("sub_category", "Uncategorized"),
+            "category": category,
+            "sub_category": sub_category,
             "business_nature": result.get("business_nature", "business"),
             "matched_rule": "openai",
             "confidence": 0.75

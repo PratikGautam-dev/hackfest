@@ -24,6 +24,14 @@ client = MongoClient(MONGODB_URI)
 db = client[DB_NAME]
 users_collection = db['users']
 transactions_collection = db['transactions']
+aa_consents_collection = db['aa_consents']
+aa_sessions_collection = db['aa_sessions']
+vendors_collection = db['vendors']
+payables_collection = db['payables']
+foreign_remittances_collection = db['foreign_remittances']
+gst_preflight_collection = db['gst_preflight_runs']
+compliance_calendar_collection = db['compliance_calendar']
+drl_requests_collection = db['drl_requests']
 
 try:
     users_collection.drop_index("email_1")

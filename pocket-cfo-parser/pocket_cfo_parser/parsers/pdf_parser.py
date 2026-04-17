@@ -9,6 +9,7 @@ Supports: ICICI, HDFC, SBI bank statement formats.
 """
 
 import logging
+import os
 import re
 import pdfplumber
 from dateutil import parser as date_parser
@@ -26,6 +27,59 @@ def _safe_amount(value: str) -> float:
         return float(cleaned) if cleaned else 0.0
     except ValueError:
         return 0.0
+
+def _looks_like_date(value: str) -> bool:
+    if not value:
+        return False
+    value = value.strip()
+    return bool(re.match(r"^\d{1,2}[-./\s][A-Za-z]{3}[-./\s]\d{2,4}$", value) or re.match(r"^\d{1,2}[-./]\d{1,2}[-./]\d{2,4}$", value))
+
+
+def _parse_date(date_value: str):
+    try:
+        return date_parser.parse(date_value, dayfirst=True)
+    except Exception:
+        return None
+
+
+def _guess_type_from_text(text: str) -> str:
+    raw = (text or "").lower()
+    credit_signals = ["credit", "credited", "deposit", "salary", "refund", "cashback", "cradj", "imps in", "neft in", "upi in"]
+    debit_signals = ["debit", "debited", "withdraw", "purchase", "atm", "emi", "bill", "upi/", "imps", "neft", "dr"]
+    if any(token in raw for token in credit_signals):
+        return "credit"
+    if any(token in raw for token in debit_signals):
+        return "debit"
+    return "debit"
+
+
+def _parse_transaction_from_line(date_str: str, text_line: str) -> Transaction | None:
+    # Try to capture Indian statement amounts near the line end.
+    amount_tokens = re.findall(r"\d{1,3}(?:,\d{3})*(?:\.\d{2})|\d+\.\d{2}", text_line)
+    if len(amount_tokens) < 2:
+        return None
+
+    # Most statements place transaction amount before running balance.
+    txn_amount = _safe_amount(amount_tokens[-2])
+    if txn_amount <= 0:
+        return None
+
+    txn_date = _parse_date(date_str)
+    if not txn_date:
+        return None
+
+    txn_type = _guess_type_from_text(text_line)
+    party = _extract_party_from_remarks(text_line)
+
+    return Transaction(
+        amount=txn_amount,
+        type=txn_type,  # type: ignore
+        party=party,
+        date=txn_date,
+        source="pdf",
+        raw_text=text_line,
+        confidence=0.78
+    )
 
 
 def _extract_party_from_remarks(remarks: str) -> str:
@@ -111,6 +165,111 @@ def _find_table_with_headers(page) -> tuple[list, dict] | None:
             column_map['deposit'] = len(header_row) - 1
     
     return table[1:], column_map  # Skip header row
+
+
+def _find_table_with_headers_from_rows(table: list[list]) -> tuple[list, dict] | None:
+    if not table or len(table) < 2:
+        return None
+
+    header_row = [str(cell).strip().lower() if cell else "" for cell in table[0]]
+    column_map = {}
+    for idx, header in enumerate(header_row):
+        if any(x in header for x in ['date', 'transaction date', 'value date']):
+            if 'date' not in column_map:
+                column_map['date'] = idx
+            else:
+                column_map['value_date'] = idx
+        elif any(x in header for x in ['remarks', 'description', 'transaction remarks', 'narration', 'particulars']):
+            column_map['remarks'] = idx
+        elif any(x in header for x in ['withdrawal', 'debit', 'dr']):
+            column_map['withdrawal'] = idx
+        elif any(x in header for x in ['deposit', 'credit', 'cr']):
+            column_map['deposit'] = idx
+        elif 'balance' in header:
+            column_map['balance'] = idx
+
+    if 'date' not in column_map or 'remarks' not in column_map:
+        return None
+    return table[1:], column_map
+
+
+def _parse_table_rows_generic(table_rows: list[list], column_map: dict) -> list[Transaction]:
+    parsed: list[Transaction] = []
+    for row in table_rows:
+        if not row:
+            continue
+        safe = [str(cell).strip() if cell is not None else "" for cell in row]
+        date_str = safe[column_map["date"]] if column_map.get("date") is not None and len(safe) > column_map["date"] else ""
+        if not _looks_like_date(date_str):
+            # Some statements keep date in value date column.
+            v_idx = column_map.get("value_date")
+            if v_idx is not None and len(safe) > v_idx and _looks_like_date(safe[v_idx]):
+                date_str = safe[v_idx]
+            else:
+                continue
+
+        remarks_idx = column_map["remarks"]
+        remarks = safe[remarks_idx] if len(safe) > remarks_idx else ""
+        if not remarks:
+            remarks = "Bank Transaction"
+
+        withdrawal = _safe_amount(safe[column_map["withdrawal"]]) if column_map.get("withdrawal") is not None and len(safe) > column_map["withdrawal"] else 0.0
+        deposit = _safe_amount(safe[column_map["deposit"]]) if column_map.get("deposit") is not None and len(safe) > column_map["deposit"] else 0.0
+
+        txn_amount = max(withdrawal, deposit)
+        if txn_amount <= 0:
+            continue
+
+        txn_date = _parse_date(date_str)
+        if not txn_date:
+            continue
+
+        txn_type = "credit" if deposit > withdrawal else "debit"
+        party = _extract_party_from_remarks(remarks)
+        raw_text = " | ".join([cell for cell in safe if cell])
+
+        parsed.append(Transaction(
+            amount=txn_amount,
+            type=txn_type,  # type: ignore
+            party=party,
+            date=txn_date,
+            source="pdf",
+            raw_text=raw_text,
+            confidence=0.86
+        ))
+    return parsed
+
+
+def _parse_text_fallback(full_text: str) -> list[Transaction]:
+    transactions: list[Transaction] = []
+    lines = [line.strip() for line in full_text.splitlines() if line and line.strip()]
+    current_date = ""
+    current_line = ""
+
+    for line in lines:
+        # Skip non-transaction headers
+        lower = line.lower()
+        if any(token in lower for token in ["account statement", "branch address", "nominee", "currency", "account no", "transaction date", "value date"]):
+            continue
+
+        date_match = re.match(r"^(\d{1,2}[-./\s][A-Za-z]{3}[-./\s]\d{2,4}|\d{1,2}[-./]\d{1,2}[-./]\d{2,4})\s+(.*)$", line)
+        if date_match:
+            # Flush previous candidate
+            if current_date and current_line:
+                txn = _parse_transaction_from_line(current_date, current_line)
+                if txn:
+                    transactions.append(txn)
+            current_date = date_match.group(1)
+            current_line = date_match.group(2)
+        elif current_date:
+            current_line = f"{current_line} {line}".strip()
+
+    if current_date and current_line:
+        txn = _parse_transaction_from_line(current_date, current_line)
+        if txn:
+            transactions.append(txn)
+
+    return transactions
 
 
 def _parse_icici_text(text: str) -> list[Transaction]:
@@ -254,35 +413,46 @@ def parse_pdf(filepath: str) -> list[Transaction]:
     Returns:
         List of parsed Transaction objects
     """
-    transactions = []
-    
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(filepath)
+
+    transactions: list[Transaction] = []
     try:
         with pdfplumber.open(filepath) as pdf:
             if not pdf.pages:
                 logger.warning(f"PDF {filepath} has no pages")
                 return transactions
-            
-            # Extract all text from all pages
+
             full_text = ""
             for page in pdf.pages:
-                text = page.extract_text() or ""
-                full_text += text + "\n"
-            
+                full_text += (page.extract_text() or "") + "\n"
+
+                # First pass: extract structured tables
+                for table in page.extract_tables() or []:
+                    table_result = _find_table_with_headers_from_rows(table)
+                    if not table_result:
+                        continue
+                    rows, col_map = table_result
+                    transactions.extend(_parse_table_rows_generic(rows, col_map))
+
             bank_name = _detect_bank_name(full_text)
             logger.info(f"Detected bank: {bank_name} — parsing {len(pdf.pages)} page(s)")
-            
-            # Parse based on bank type
-            if bank_name == "ICICI":
-                transactions = _parse_icici_text(full_text)
-            else:
-                # Fallback for other banks
-                logger.warning(f"Bank {bank_name} text parsing not fully implemented yet")
-                transactions = _parse_icici_text(full_text)  # Try ICICI format anyway
-    
+
+            # Second pass fallback when table parsing is weak.
+            if len(transactions) < 3:
+                logger.info("Table extraction yielded too few rows; using text fallback parser")
+                transactions.extend(_parse_text_fallback(full_text))
+
+            # Last resort: legacy ICICI parser for odd layouts.
+            if len(transactions) < 3:
+                transactions.extend(_parse_icici_text(full_text))
+
     except Exception as e:
         logger.error(f"Failed to parse PDF {filepath}: {type(e).__name__}: {e}")
         return []
-    
-    logger.info(f"PDF parse complete: extracted {len(transactions)} transactions from {filepath}")
-    return transactions
+
+    # Deduplicate parser output by deterministic transaction hash.
+    deduped = list({txn.id: txn for txn in transactions}.values())
+    logger.info(f"PDF parse complete: extracted {len(deduped)} transactions from {filepath}")
+    return deduped
 
