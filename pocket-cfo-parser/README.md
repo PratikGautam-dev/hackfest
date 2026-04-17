@@ -44,7 +44,38 @@ Parsed transaction data is automatically categorized, mapped to a unified intern
    DB_NAME=pocket_cfo
    ```
 
-## 📁 System Architecture
+## ▶️ Running the Project
+
+> All commands below must be run from the **`hackfest/` root directory** (one level above `pocket-cfo-parser/`).
+
+### Start the Backend (FastAPI)
+
+```bash
+cd pocket-cfo-parser && source .venv/Scripts/activate && uvicorn api.main:app --reload --port 8000
+```
+
+API will be available at → **http://localhost:8000**  
+Swagger docs at → **http://localhost:8000/docs**
+
+### Start the Frontend (Testing Dashboard)
+
+Open a **second terminal** from the `hackfest/` root:
+
+```bash
+python -m http.server 5500 --directory frontend
+```
+
+Dashboard will be available at → **http://localhost:5500**
+
+### Quick Start (Windows — double-click)
+
+```bash
+start.bat
+```
+
+Launches both servers and opens Chrome automatically.
+
+
 
 ```text
 pocket-cfo-parser/
