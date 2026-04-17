@@ -903,6 +903,10 @@
       <span class="nav-icon">🏛️</span> GST Agent
       <span class="badge">GET</span>
     </a>
+    <a onclick="navigate('compliance')" id="nav-compliance">
+      <span class="nav-icon">🧾</span> Compliance Lab
+      <span class="badge">NEW</span>
+    </a>
     <a onclick="navigate('health')" id="nav-health">
       <span class="nav-icon">❤️</span> Health Check
     </a>
@@ -1659,6 +1663,160 @@
       </div>
     </section>
 
+    <!-- ── COMPLIANCE LAB ── -->
+    <section class="section" id="section-compliance">
+      <div class="page-header">
+        <h1>Compliance Lab</h1>
+        <p>Test all new compliance phases from one place: AA, MSME 43B(h), cross-border forms, OIDAR/RCM, and DRL scheduler.</p>
+      </div>
+
+      <div class="card mb-2">
+        <div class="flex-gap items-center">
+          <div style="flex:1; max-width:380px;">
+            <label>User ID</label>
+            <input type="text" id="comp-uid" placeholder="backend_user_id" />
+          </div>
+          <div style="padding-top:1.5rem;">
+            <button class="btn btn-primary" onclick="runComplianceSmoke()">🚀 Run Full Compliance Smoke Test</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="icon">🔐</span> Phase 1: AA Integration</div>
+          <div class="grid-2">
+            <div>
+              <label>AA Handle</label>
+              <input type="text" id="aa-handle" value="demo@finvu" />
+            </div>
+            <div>
+              <label>FI Types (comma separated)</label>
+              <input type="text" id="aa-fitypes" value="DEPOSIT" />
+            </div>
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-ghost" onclick="aaRequestConsent()">1) Request Consent</button>
+            <button class="btn btn-ghost" onclick="aaMarkConsentActive()">2) Mark Active</button>
+            <button class="btn btn-ghost" onclick="aaDataReadyFetch()">3) Data Ready + Fetch</button>
+          </div>
+          <div id="aa-result" class="text-muted mt-2" style="font-size:0.82rem;">No AA activity yet.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">🏭</span> Phase 2: MSME + 43B(h)</div>
+          <div class="grid-2">
+            <div>
+              <label>Vendor Name</label>
+              <input type="text" id="msme-vendor" value="Micro Tools Pvt" />
+            </div>
+            <div>
+              <label>Vendor PAN</label>
+              <input type="text" id="msme-pan" value="ABCDE1234F" />
+            </div>
+            <div>
+              <label>Invoice No</label>
+              <input type="text" id="payable-inv" value="INV-43BH-001" />
+            </div>
+            <div>
+              <label>Invoice Date</label>
+              <input type="text" id="payable-date" value="2025-01-01" />
+            </div>
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-ghost" onclick="verifyMSME()">Verify MSME</button>
+            <button class="btn btn-ghost" onclick="createPayable()">Create Payable</button>
+            <button class="btn btn-ghost" onclick="run43BH()">Run 43B(h)</button>
+          </div>
+          <div id="msme-result" class="text-muted mt-2" style="font-size:0.82rem;">No MSME activity yet.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">🌍</span> Phase 3: W-8BEN + 15CA</div>
+          <div class="grid-2">
+            <div>
+              <label>Full Name</label>
+              <input type="text" id="w8-name" value="Pratik Gautam" />
+            </div>
+            <div>
+              <label>Address</label>
+              <input type="text" id="w8-address" value="Patna, Bihar, India" />
+            </div>
+            <div>
+              <label>PAN</label>
+              <input type="text" id="w8-pan" value="ABCDE1234F" />
+            </div>
+            <div>
+              <label>Foreign Remit Amount (INR)</label>
+              <input type="number" id="remit-amount" value="650000" />
+            </div>
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-ghost" onclick="generateW8BEN()">Generate W-8BEN</button>
+            <button class="btn btn-ghost" onclick="createForeignRemittance()">Generate 15CA XML</button>
+          </div>
+          <div id="cross-result" class="text-muted mt-2" style="font-size:0.82rem;">No cross-border activity yet.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">🏛️</span> Phase 4: OIDAR + GST Preflight</div>
+          <div class="grid-2">
+            <div>
+              <label>Vendor/Party</label>
+              <input type="text" id="oidar-party" value="AWS Singapore" />
+            </div>
+            <div>
+              <label>Amount</label>
+              <input type="number" id="oidar-amount" value="10000" />
+            </div>
+            <div>
+              <label>GSTR-1 Total Tax</label>
+              <input type="number" id="preflight-g1" value="1200" />
+            </div>
+            <div>
+              <label>GSTR-3B Total Tax</label>
+              <input type="number" id="preflight-g3b" value="1000" />
+            </div>
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-ghost" onclick="checkOIDAR()">Check OIDAR/RCM</button>
+            <button class="btn btn-ghost" onclick="runGSTPreflight()">Run GST Preflight</button>
+          </div>
+          <div id="gstcomp-result" class="text-muted mt-2" style="font-size:0.82rem;">No GST compliance activity yet.</div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title"><span class="icon">📅</span> Phase 5: MCA Scheduler + DRL</div>
+          <div class="grid-3">
+            <div>
+              <label>Entity Type</label>
+              <input type="text" id="calendar-entity" value="pvt_ltd" />
+            </div>
+            <div>
+              <label>Financial Year End</label>
+              <input type="text" id="calendar-fy" value="2026-03-31" />
+            </div>
+            <div>
+              <label>DRL Threshold Amount</label>
+              <input type="number" id="drl-threshold" value="20000" />
+            </div>
+          </div>
+          <div class="flex-gap mt-2">
+            <button class="btn btn-ghost" onclick="scheduleComplianceCalendar()">Schedule MCA Calendar</button>
+            <button class="btn btn-ghost" onclick="triggerDRL()">Trigger DRL</button>
+          </div>
+          <div id="calendar-result" class="text-muted mt-2" style="font-size:0.82rem;">No calendar/DRL activity yet.</div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-title"><span class="icon">📦</span> Compliance API Response</div>
+          <div class="response-panel" style="max-height:320px;">
+            <div id="compliance-raw" class="response-body"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── HEALTH ── -->
     <section class="section" id="section-health">
       <div class="page-header">
@@ -1749,7 +1907,7 @@
     document.getElementById('nav-' + page).classList.add('active');
 
     // auto‑fill uid inputs
-    const uidInputs = ['sms-uid','pdf-uid','txn-uid','ins-uid','act-uid','itc-uid','book-uid','fs-uid','tax-uid','rec-uid','audit-uid','sim-uid'];
+    const uidInputs = ['sms-uid','pdf-uid','txn-uid','ins-uid','act-uid','itc-uid','book-uid','fs-uid','tax-uid','rec-uid','audit-uid','sim-uid','comp-uid'];
     uidInputs.forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.value && USER_ID) el.value = USER_ID;
@@ -2763,6 +2921,307 @@
     } catch (e) {
       document.getElementById('sim-grid').style.display = 'none';
       showToast('What-if simulation failed: ' + e.message, 'error');
+    }
+  }
+
+  /* ───────────────────────────────────────────────
+      COMPLIANCE LAB (PHASE 1-5)
+  ─────────────────────────────────────────────── */
+  let aaConsentId = '';
+
+  function getComplianceUid() {
+    return document.getElementById('comp-uid').value.trim() || USER_ID;
+  }
+
+  function setComplianceRaw(data) {
+    const el = document.getElementById('compliance-raw');
+    if (el) el.textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function aaRequestConsent() {
+    const uid = getComplianceUid();
+    if (!uid) { showToast('Enter User ID for compliance tests', 'error'); return; }
+    const aaHandle = document.getElementById('aa-handle').value.trim();
+    const fiTypes = (document.getElementById('aa-fitypes').value || 'DEPOSIT').split(',').map(s => s.trim()).filter(Boolean);
+    try {
+      const r = await fetch(API + '/aa/consent/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: uid,
+          aa_handle: aaHandle,
+          fi_types: fiTypes,
+          from_date: '2025-04-01',
+          to_date: '2026-03-31'
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      aaConsentId = data.consent_id || '';
+      document.getElementById('aa-result').textContent = `Consent requested. consent_id=${aaConsentId}`;
+      setComplianceRaw(data);
+      showToast('AA consent request created', 'success');
+    } catch (e) {
+      showToast('AA consent request failed: ' + e.message, 'error');
+    }
+  }
+
+  async function aaMarkConsentActive() {
+    if (!aaConsentId) { showToast('Request consent first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/aa/webhook/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consent_id: aaConsentId, status: 'ACTIVE', payload: { source: 'ui' } })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('aa-result').textContent = `Consent status updated: ${data.status}`;
+      setComplianceRaw(data);
+      showToast('AA consent set to ACTIVE', 'success');
+    } catch (e) {
+      showToast('Consent update failed: ' + e.message, 'error');
+    }
+  }
+
+  async function aaDataReadyFetch() {
+    const uid = getComplianceUid();
+    if (!aaConsentId) { showToast('Request consent first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/aa/webhook/data-ready', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consent_id: aaConsentId, session_id: 'sess-ui-1', user_id: uid, payload: { source: 'ui' } })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('aa-result').textContent = `AA fetch complete. upserted=${data.fetch_result?.upserted_transactions || 0}`;
+      setComplianceRaw(data);
+      showToast('AA data fetched and persisted', 'success');
+    } catch (e) {
+      showToast('AA data fetch failed: ' + e.message, 'error');
+    }
+  }
+
+  async function verifyMSME() {
+    const uid = getComplianceUid();
+    if (!uid) { showToast('Enter User ID first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/vendors/verify-msme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: uid,
+          vendor_name: document.getElementById('msme-vendor').value.trim(),
+          pan: document.getElementById('msme-pan').value.trim()
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('msme-result').textContent = `MSME verified: ${data.msme?.enterprise_type || 'UNKNOWN'} (${data.msme?.active_status || 'UNKNOWN'})`;
+      setComplianceRaw(data);
+      showToast('MSME verification completed', 'success');
+    } catch (e) {
+      showToast('MSME verify failed: ' + e.message, 'error');
+    }
+  }
+
+  async function createPayable() {
+    const uid = getComplianceUid();
+    if (!uid) { showToast('Enter User ID first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/payables/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: uid,
+          vendor_pan: document.getElementById('msme-pan').value.trim(),
+          invoice_number: document.getElementById('payable-inv').value.trim(),
+          invoice_date: document.getElementById('payable-date').value.trim(),
+          amount: 120000
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('msme-result').textContent = `Payable created: ${data.invoice_number}`;
+      setComplianceRaw(data);
+      showToast('Payable created', 'success');
+    } catch (e) {
+      showToast('Create payable failed: ' + e.message, 'error');
+    }
+  }
+
+  async function run43BH() {
+    const uid = getComplianceUid();
+    if (!uid) { showToast('Enter User ID first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/payables/43bh/' + uid);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('msme-result').textContent = `43B(h) scan done. flagged=${data.flagged_count || 0}`;
+      setComplianceRaw(data);
+      showToast('43B(h) aging scan completed', 'success');
+    } catch (e) {
+      showToast('43B(h) scan failed: ' + e.message, 'error');
+    }
+  }
+
+  async function generateW8BEN() {
+    try {
+      const r = await fetch(API + '/compliance/w8ben/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: document.getElementById('w8-name').value.trim(),
+          registered_address: document.getElementById('w8-address').value.trim(),
+          pan: document.getElementById('w8-pan').value.trim()
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('cross-result').textContent = `W-8BEN generated at: ${data.file_path || 'generated/'}`;
+      setComplianceRaw(data);
+      showToast('W-8BEN generated', 'success');
+    } catch (e) {
+      showToast('W-8BEN generation failed: ' + e.message, 'error');
+    }
+  }
+
+  async function createForeignRemittance() {
+    const uid = getComplianceUid();
+    if (!uid) { showToast('Enter User ID first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/compliance/foreign-remittance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: uid,
+          remitter_name: 'Pocket CFO',
+          remitter_pan: document.getElementById('w8-pan').value.trim(),
+          remittee_name: 'US Vendor',
+          remittee_country: 'USA',
+          amount_inr: Number(document.getElementById('remit-amount').value || 0),
+          purpose_code: 'P0802',
+          dtaa_applicable: true,
+          taxability: 'TAXABLE',
+          withholding_rate: 0
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('cross-result').textContent = `Foreign remittance saved. 15CA required=${data.needs_form_15ca ? 'Yes' : 'No'}`;
+      setComplianceRaw(data);
+      showToast('Foreign remittance workflow completed', 'success');
+    } catch (e) {
+      showToast('Foreign remittance failed: ' + e.message, 'error');
+    }
+  }
+
+  async function checkOIDAR() {
+    try {
+      const r = await fetch(API + '/compliance/oidar/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          party: document.getElementById('oidar-party').value.trim(),
+          amount: Number(document.getElementById('oidar-amount').value || 0)
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('gstcomp-result').textContent = `OIDAR=${data.oidar_import ? 'Yes' : 'No'} | RCM=${data.rcm_applicable ? 'Yes' : 'No'} | IGST=${data.igst_rcm_liability || 0}`;
+      setComplianceRaw(data);
+      showToast('OIDAR/RCM check completed', 'success');
+    } catch (e) {
+      showToast('OIDAR check failed: ' + e.message, 'error');
+    }
+  }
+
+  async function runGSTPreflight() {
+    const uid = getComplianceUid();
+    if (!uid) { showToast('Enter User ID first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/compliance/gst/preflight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: uid,
+          gstr1_total_tax: Number(document.getElementById('preflight-g1').value || 0),
+          gstr3b_total_tax: Number(document.getElementById('preflight-g3b').value || 0)
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('gstcomp-result').textContent = `Preflight ${data.blocked ? 'BLOCKED' : 'PASSED'} | diff=${data.difference}`;
+      setComplianceRaw(data);
+      showToast('GST preflight completed', data.blocked ? 'error' : 'success');
+    } catch (e) {
+      showToast('GST preflight failed: ' + e.message, 'error');
+    }
+  }
+
+  async function scheduleComplianceCalendar() {
+    const uid = getComplianceUid();
+    if (!uid) { showToast('Enter User ID first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/compliance/calendar/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: uid,
+          entity_type: document.getElementById('calendar-entity').value.trim(),
+          financial_year_end: document.getElementById('calendar-fy').value.trim()
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('calendar-result').textContent = `Calendar scheduled. reminders=${(data.reminders || []).length}`;
+      setComplianceRaw(data);
+      showToast('Compliance calendar scheduled', 'success');
+    } catch (e) {
+      showToast('Calendar scheduling failed: ' + e.message, 'error');
+    }
+  }
+
+  async function triggerDRL() {
+    const uid = getComplianceUid();
+    if (!uid) { showToast('Enter User ID first', 'error'); return; }
+    try {
+      const r = await fetch(API + '/compliance/drl/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: uid,
+          threshold_amount: Number(document.getElementById('drl-threshold').value || 20000)
+        })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      document.getElementById('calendar-result').textContent = `DRL triggered: ${(data.requests || []).length} requests`;
+      setComplianceRaw(data);
+      showToast('DRL trigger completed', 'success');
+    } catch (e) {
+      showToast('DRL trigger failed: ' + e.message, 'error');
+    }
+  }
+
+  async function runComplianceSmoke() {
+    try {
+      await aaRequestConsent();
+      await aaMarkConsentActive();
+      await aaDataReadyFetch();
+      await verifyMSME();
+      await createPayable();
+      await run43BH();
+      await generateW8BEN();
+      await createForeignRemittance();
+      await checkOIDAR();
+      await runGSTPreflight();
+      await scheduleComplianceCalendar();
+      await triggerDRL();
+      showToast('Compliance smoke test completed', 'success');
+    } catch (e) {
+      showToast('Compliance smoke test failed: ' + e.message, 'error');
     }
   }
 

@@ -28,6 +28,22 @@ from pocket_cfo_parser.agents.financial_statements_agent import get_financial_st
 from pocket_cfo_parser.agents.income_tax_agent import get_income_tax_summary
 from pocket_cfo_parser.agents.reconciliation_agent import get_reconciliation_report
 from pocket_cfo_parser.agents.audit_agent import get_audit_report
+from pocket_cfo_parser.compliance_engine import (
+    W8BENData,
+    create_aa_consent,
+    create_payable_invoice,
+    detect_oidar_rcm,
+    fetch_aa_financial_data,
+    generate_w8ben_pdf,
+    mark_aa_data_ready,
+    run_43bh_aging,
+    run_gst_preflight,
+    save_foreign_remittance,
+    schedule_compliance_calendar,
+    trigger_drl_if_missing_invoice,
+    update_aa_consent_status,
+    verify_msme_vendor,
+)
 
 # Instantiate API architecture
 app = FastAPI(
@@ -53,6 +69,83 @@ class UserCreatePayload(BaseModel):
     name: str
     phone: str
     business_name: str
+
+
+class AAConsentPayload(BaseModel):
+    user_id: str
+    aa_handle: str
+    fi_types: list[str]
+    from_date: str
+    to_date: str
+
+
+class AAConsentWebhookPayload(BaseModel):
+    consent_id: str
+    status: str
+    payload: dict | None = None
+
+
+class AADataReadyPayload(BaseModel):
+    consent_id: str
+    session_id: str
+    user_id: str
+    payload: dict | None = None
+
+
+class VendorVerifyPayload(BaseModel):
+    user_id: str
+    vendor_name: str
+    pan: str
+    udyam_number: str | None = None
+
+
+class PayableCreatePayload(BaseModel):
+    user_id: str
+    vendor_pan: str
+    invoice_number: str
+    invoice_date: str
+    amount: float
+
+
+class W8BENPayload(BaseModel):
+    full_name: str
+    registered_address: str
+    pan: str
+
+
+class ForeignRemittancePayload(BaseModel):
+    user_id: str
+    remitter_name: str
+    remitter_pan: str
+    remittee_name: str
+    remittee_country: str
+    amount_inr: float
+    purpose_code: str = "P0802"
+    dtaa_applicable: bool = True
+    taxability: str = "TAXABLE"
+    withholding_rate: float = 0.0
+
+
+class OidarCheckPayload(BaseModel):
+    party: str
+    amount: float
+
+
+class GSTPreflightPayload(BaseModel):
+    user_id: str
+    gstr1_total_tax: float
+    gstr3b_total_tax: float
+
+
+class ComplianceCalendarPayload(BaseModel):
+    user_id: str
+    entity_type: str
+    financial_year_end: str
+
+
+class DRLPayload(BaseModel):
+    user_id: str
+    threshold_amount: float = 20000.0
 
 @app.post("/users/create")
 def create_user_route(payload: UserCreatePayload):
@@ -800,6 +893,120 @@ def what_if_route(
         },
         "generated_at": datetime.now().isoformat()
     }
+
+
+# -----------------------------
+# Phase 1: AA integration routes
+# -----------------------------
+@app.post("/aa/consent/request")
+def aa_consent_request_route(payload: AAConsentPayload):
+    return create_aa_consent(
+        user_id=payload.user_id,
+        aa_handle=payload.aa_handle,
+        fi_types=payload.fi_types,
+        from_date=payload.from_date,
+        to_date=payload.to_date,
+    )
+
+
+@app.post("/aa/webhook/consent")
+def aa_consent_webhook_route(payload: AAConsentWebhookPayload):
+    return update_aa_consent_status(payload.consent_id, payload.status, payload.payload)
+
+
+@app.post("/aa/webhook/data-ready")
+def aa_data_ready_webhook_route(payload: AADataReadyPayload):
+    mark_aa_data_ready(payload.consent_id, payload.session_id, payload.payload)
+    fetch_result = fetch_aa_financial_data(payload.consent_id, payload.session_id, payload.user_id)
+    return {"status": "processed", "fetch_result": fetch_result}
+
+
+# -----------------------------
+# Phase 2: MSME + 43B(h)
+# -----------------------------
+@app.post("/vendors/verify-msme")
+def verify_msme_route(payload: VendorVerifyPayload):
+    return verify_msme_vendor(
+        user_id=payload.user_id,
+        vendor_name=payload.vendor_name,
+        pan=payload.pan,
+        udyam_number=payload.udyam_number,
+    )
+
+
+@app.post("/payables/create")
+def create_payable_route(payload: PayableCreatePayload):
+    return create_payable_invoice(
+        user_id=payload.user_id,
+        vendor_pan=payload.vendor_pan,
+        invoice_number=payload.invoice_number,
+        invoice_date=payload.invoice_date,
+        amount=payload.amount,
+    )
+
+
+@app.get("/payables/43bh/{user_id}")
+def run_43bh_route(user_id: str):
+    return run_43bh_aging(user_id)
+
+
+# -----------------------------
+# Phase 3: W-8BEN + 15CA
+# -----------------------------
+@app.post("/compliance/w8ben/generate")
+def generate_w8ben_route(payload: W8BENPayload):
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "generated")
+    pdf_path = generate_w8ben_pdf(
+        W8BENData(
+            full_name=payload.full_name,
+            registered_address=payload.registered_address,
+            pan=payload.pan.upper(),
+        ),
+        output_dir=output_dir,
+    )
+    return {"status": "generated", "file_path": pdf_path}
+
+
+@app.post("/compliance/foreign-remittance")
+def create_foreign_remittance_route(payload: ForeignRemittancePayload):
+    return save_foreign_remittance(
+        user_id=payload.user_id,
+        remittance=payload.model_dump(),
+    )
+
+
+# -----------------------------
+# Phase 4: OIDAR + GST preflight
+# -----------------------------
+@app.post("/compliance/oidar/check")
+def oidar_check_route(payload: OidarCheckPayload):
+    return detect_oidar_rcm(payload.party, payload.amount)
+
+
+@app.post("/compliance/gst/preflight")
+def gst_preflight_route(payload: GSTPreflightPayload):
+    return run_gst_preflight(
+        gstr1_total_tax=payload.gstr1_total_tax,
+        gstr3b_total_tax=payload.gstr3b_total_tax,
+        user_id=payload.user_id,
+    )
+
+
+# -----------------------------
+# Phase 5: Compliance calendar + DRL
+# -----------------------------
+@app.post("/compliance/calendar/schedule")
+def schedule_calendar_route(payload: ComplianceCalendarPayload):
+    return schedule_compliance_calendar(
+        user_id=payload.user_id,
+        entity_type=payload.entity_type,
+        financial_year_end=payload.financial_year_end,
+    )
+
+
+@app.post("/compliance/drl/trigger")
+def trigger_drl_route(payload: DRLPayload):
+    return trigger_drl_if_missing_invoice(payload.user_id, payload.threshold_amount)
 
 
 if __name__ == "__main__":
