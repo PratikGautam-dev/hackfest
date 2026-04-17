@@ -1647,7 +1647,9 @@
   ─────────────────────────────────────────────── */
   window.addEventListener('DOMContentLoaded', () => {
     checkHealthSilent();
-    setInterval(checkHealthSilent, 15000);
+    setInterval(() => {
+      if (!document.hidden) checkHealthSilent();
+    }, 60000);
   });
 </script>
 </body>
